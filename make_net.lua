@@ -7,7 +7,7 @@ require 'user_define'
 local nninit =require 'nninit'
 local net = nn.Sequential()
 cutorch.setDevice(2)
-
+-------------------------------------------------------------------------------
 local function base_load(base_name)
 
 local base_net
@@ -23,8 +23,7 @@ os.execute('wget '..url..'/ResNet-50-deploy.prototxt')
 os.execute('wget '..url..'/ResNet-50-modle.caffemodel')
 
 end
-
-
+  
 if base_name == 'vgg' then 
 base_net = loadcaffe.load('VGG_ILSVRC_layers_deploy.prototxt','VGG_ILSVRC_16_layers.caffemodel','cudnn')
 elseif base_name == 'residual' then
@@ -35,16 +34,62 @@ end
 return base_net
 end
 
-function conf() --table input, linear output
+-------------------------------------------------------------------------------
 
-return 
+function loc() --table input, linear output
+local loc = nn.Sequential()
+local parl =nn.ParallelTable()
+local reshape = nn.ParallelTable()
+  
+local dim ={256,256,256,256,512,1024,512}
+  
+for iter_loc = 1, 6 do 
+parl:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1))
+end
+parl:add((nn.SpatialConvolution(dim[7],4*3,3,3,1,1)))
+
+reshape:add(nn.Reshape(4*6))
+reshape:add(nn.Reshape(4*6*2*2))
+reshape:add(nn.Reshape(4*6*4*4))
+reshape:add(nn.Reshape(4*6*8*8))
+reshape:add(nn.Reshape(4*6*16*16))
+reshape:add(nn.Reshape(4*6*32*32))
+reshape:add(nn.Reshape(4*3*63*63))
+  
+  
+  loc:add(parl)
+  loc:add(reshape)
+  loc:add(nn.JointTable())
+return loc
+end
+
+function conf(classes)
+local dim ={256,256,256,256,512,1024,512}
+local parl =nn.ParallelTable()
+local reshape = nn.ParallelTable()
+local conf = nn.Sequential()
+  
+for iter_conf = 1, 6 do 
+conf:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1))
+end
+conf:add(nn.SpatialConvolution(dim[7],classed*3,3,3,1,1))
+
+  reshape:add(nn.Reshape(classes*6))
+reshape:add(nn.Reshape(classes*6*2*2))
+reshape:add(nn.Reshape(classes*6*4*4))
+reshape:add(nn.Reshape(classes*6*8*8))
+reshape:add(nn.Reshape(classes*6*16*16))
+reshape:add(nn.Reshape(classes*6*32*32))
+reshape:add(nn.Reshape(classes*3*63*63))
+
+  conf:add(parl)
+  conf:add(reshape)
+  conf:add(nn.JointTable())
+  return conf
 end
 
 
-
-
-
-
+-------------------------------------------------------------------------------
 
 function make_net(base_name)
 
@@ -138,32 +183,23 @@ net:add(nn.FlattenTable())
 
 -- here is loc prior , conf
 local loss_net = nn.ConcatTable()
-local loc = nn.ParallelTable()
+local loc_net = loc()
 local conf = nn.ParallelTable()
 local prior = nn.ParallelTable()
 ---------------------------------
-local dim ={256,256,256,256,512,1024,512}
-for iter_loc = 1, 6 do 
-loc:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1))
-end
-loc:add((nn.SpatialConvolution(dim[7],4*3,3,3,1,1)))
 --------------------------------
-for iter_conf = 1, 6 do 
-conf:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1))
-end
-conf:add(nn.SpatialConvolution(dim[7],classed*3,3,3,1,1))
 
 ------------------------------
-prior:
-prior:
+conf_net =conf(classes)
+prior_net =prior()
 
 ------------------------------
-loss_net:add(conf)
-loss_net:add(loc)
-loss_net:add(prior)
+loss_net:add(conf_net)
+loss_net:add(loc_net)
+--loss_net:add(prior_net)
 
 
---net:add(loss_net) -- 3 output
+net:add(loss_net) -- 3 output
 elseif base_name == 'residual' then
 
 print('residual')
