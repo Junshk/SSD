@@ -2,14 +2,16 @@ require 'nn'
 require 'cudnn'
 require 'cunn'
 require 'loadcaffe'
+require 'user_define'
 
+local nninit =require 'nninit'
 local net = nn.Sequential()
-
+cutorch.setDevice(2)
 
 local function base_load(base_name)
 
 local base_net
-local vgg_path, resnet_path = '', ''
+local vgg_path, resnet_path = './VGG_ILSVRC_16_layers.caffemodel', './'
 
 
 if base_name == 'vgg' and paths.filep(vgg_path) ~= true then
@@ -33,11 +35,43 @@ end
 return base_net
 end
 
+function conf() --table input, linear output
+
+return 
+end
+
+
+
+
+
+
+
 function make_net(base_name)
 
 
-base_load(base_name)
+local base = base_load(base_name)
 
+-- fc 6, 7 to conv and subsampling parameters
+local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
+local perm_order = torch.randperm(4096)
+perm_order = perm_order[{{1,1024}}]
+local sample = torch.Tensor({1,4,7}):long()
+
+
+weight_of_fc6 = weight_of_fc6:index(1,perm_order:long())
+weight_of_fc6 = weight_of_fc6:index(2,sample)
+weight_of_fc6 = weight_of_fc6:index(3,sample)
+
+weight_of_fc6 = weight_of_fc6:transpose(3,4)
+weight_of_fc6 = weight_of_fc6:transpose(2,3)
+weight_of_fc6 = weight_of_fc6:transpose(1,2)
+print()
+local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1)
+weight_of_fc7 = weight_of_fc7:index(1,perm_order:long())
+weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
+weight_of_fc7 = weight_of_fc7:transpose(1,2)
+--print(weight_of_fc7:size())
+-----------------------------
 
 if base_name == 'vgg' then
 
@@ -47,8 +81,17 @@ local extra = nn.Sequential()  -- after pool5
 local concat1,concat2,concat3,concat4,concat5 = nn.ConcatTable(),nn.ConcatTable(),nn.ConcatTable(),nn.ConcatTable(),nn.ConcatTable()
 local seq1,seq2,seq3,seq4 = nn.Sequential(),nn.Sequential(), nn.Sequential(), nn.Sequential()
 
-concat5:add(nn.SpatialAveragePooling(3,3))
+local seq5, concat6 = nn.Sequential(), nn.ConcatTable()
+
+concat6:add(nn.SpatialAveragePooling(2,2))
+concat6:add(nn.Identity())
+
+seq5:add(nn.SpatialConvolution(256,128,1,1))
+seq5:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1))
+seq5:add(concat6)
+concat5:add(seq5)
 concat5:add(nn.Identity())
+
 
 seq4:add(nn.SpatialConvolution(256,128,1,1))
 seq4:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1))
@@ -66,48 +109,69 @@ seq2:add(nn.SpatialConvolution(1024,256,1,1))
 seq2:add(nn.SpatialConvolution(256,512,3,3,2,2,1,1))
 seq2:add(concat3)
 concat2:add(seq2)
-concat2:add(nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier
-
-seq1:add(nn.SpatialConvolution(512,1024,3,3,1,1))  -- subsampling
-seq1:add(nn.SpatialConvolution(1024,1024,1,1)) -- subsampling
-seq1:add()
+concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier
 
 
 
-concat1:add(nn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1)) -- classifier for conv4_3
-concat1:add(nn.SpatialConvolution())
+for iter = 24, 30 do
+seq1:add(base.modules[iter])
+end
+seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
+
+seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6))  -- subsampling fc 6
+seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7)) -- subsampling fc 7
+seq1:add(concat2)
+
+concat1:add(seq1)
+local ss = nn.Sequential():add(nn.ChannelNormalization(2))
+ss:add(nn.Mul():init('weight',nninit.constant,20))
+concat1:add(ss)--cudnn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1))
+-- 4_3
+
+for iter = 1, 23 do
+net:add(base.modules[iter])
+end
+net:add(concat1)
+
+net:add(nn.FlattenTable())
 
 
--- base network
--- fc 6, 7 to conv and subsampling parameters
+-- here is loc prior , conf
+local loss_net = nn.ConcatTable()
+local loc = nn.ParallelTable()
+local conf = nn.ParallelTable()
+local prior = nn.ParallelTable()
+---------------------------------
+local dim ={256,256,256,256,512,1024,512}
+for iter_loc = 1, 6 do 
+loc:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1))
+end
+loc:add((nn.SpatialConvolution(dim[7],4*3,3,3,1,1)))
+--------------------------------
+for iter_conf = 1, 6 do 
+conf:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1))
+end
+conf:add(nn.SpatialConvolution(dim[7],classed*3,3,3,1,1))
+
+------------------------------
+prior:
+prior:
+
+------------------------------
+loss_net:add(conf)
+loss_net:add(loc)
+loss_net:add(prior)
 
 
--- remove dropout , fc8
-base:remove(40)
-base:remove(39)
-base:remove(38)
-base:remove(36)
-base:remove(35)
-base:remove(33)
--- pool 5 2 by 2 to 3 by 3
-base.modules[31] = cudnn.SpatialMaxPooling(3,3,1,1)
--- atrous?
-
-
-
-
-net:add(base)
-net:add(extra)
-
-
+--net:add(loss_net) -- 3 output
 elseif base_name == 'residual' then
 
-
+print('residual')
 else assert(false,'wrong base network name')
 end
 
 
-
+net:cuda()
 cudnn.convert(net,cudnn)
 return net
 
