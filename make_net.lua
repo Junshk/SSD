@@ -37,55 +37,60 @@ end
 -------------------------------------------------------------------------------
 
 function loc() --table input, linear output
-local loc = nn.Sequential()
+local locnet = nn.Sequential()
 local parl =nn.ParallelTable()
 local reshape = nn.ParallelTable()
   
 local dim ={256,256,256,256,512,1024,512}
   
 for iter_loc = 1, 6 do 
-parl:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1))
+parl:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1,1,1))
 end
-parl:add((nn.SpatialConvolution(dim[7],4*3,3,3,1,1)))
+parl:add((nn.SpatialConvolution(dim[7],4*3,3,3,1,1,1,1)))
 
-reshape:add(nn.Reshape(4*6))
-reshape:add(nn.Reshape(4*6*2*2))
-reshape:add(nn.Reshape(4*6*4*4))
-reshape:add(nn.Reshape(4*6*8*8))
-reshape:add(nn.Reshape(4*6*16*16))
-reshape:add(nn.Reshape(4*6*32*32))
-reshape:add(nn.Reshape(4*3*63*63))
+reshape:add(nn.Reshape(4,6*1))
+reshape:add(nn.Reshape(4,6*2*2))
+reshape:add(nn.Reshape(4,6*4*4))
+reshape:add(nn.Reshape(4,6*8*8))
+reshape:add(nn.Reshape(4,6*16*16))
+reshape:add(nn.Reshape(4,6*32*32))
+reshape:add(nn.Reshape(4,3*63*63))
   
   
-  loc:add(parl)
-  loc:add(reshape)
-  loc:add(nn.JointTable())
-return loc
+  locnet:add(parl)
+--  locnet:add(reshape)
+--  locnet:add(nn.JoinTable(2))
+
+--locnet:add(nn.FlattenTable())
+
+return locnet
 end
 
 function conf(classes)
 local dim ={256,256,256,256,512,1024,512}
 local parl =nn.ParallelTable()
 local reshape = nn.ParallelTable()
-local conf = nn.Sequential()
+local confnet = nn.Sequential()
   
 for iter_conf = 1, 6 do 
-conf:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1))
+parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1))
 end
-conf:add(nn.SpatialConvolution(dim[7],classed*3,3,3,1,1))
+parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1))
 
-  reshape:add(nn.Reshape(classes*6))
-reshape:add(nn.Reshape(classes*6*2*2))
-reshape:add(nn.Reshape(classes*6*4*4))
-reshape:add(nn.Reshape(classes*6*8*8))
-reshape:add(nn.Reshape(classes*6*16*16))
-reshape:add(nn.Reshape(classes*6*32*32))
-reshape:add(nn.Reshape(classes*3*63*63))
+  reshape:add(nn.Reshape(classes,6*1))
+reshape:add(nn.Reshape(classes,6*2*2))
+reshape:add(nn.Reshape(classes,6*4*4))
+reshape:add(nn.Reshape(classes,6*8*8))
+reshape:add(nn.Reshape(classes,6*16*16))
+reshape:add(nn.Reshape(classes,6*32*32))
+reshape:add(nn.Reshape(classes,3*63*63))
 
-  conf:add(parl)
-  conf:add(reshape)
-  conf:add(nn.JointTable())
-  return conf
+  confnet:add(parl)
+--  confnet:add(reshape)
+--  confnet:add(nn.JoinTable(2))
+--confnet:add(nn.FlattenTable())
+
+return confnet
 end
 
 
@@ -121,7 +126,7 @@ weight_of_fc7 = weight_of_fc7:transpose(1,2)
 if base_name == 'vgg' then
 
 
-local classes = 20
+local classes = 21
 local extra = nn.Sequential()  -- after pool5
 local concat1,concat2,concat3,concat4,concat5 = nn.ConcatTable(),nn.ConcatTable(),nn.ConcatTable(),nn.ConcatTable(),nn.ConcatTable()
 local seq1,seq2,seq3,seq4 = nn.Sequential(),nn.Sequential(), nn.Sequential(), nn.Sequential()
@@ -191,7 +196,7 @@ local prior = nn.ParallelTable()
 
 ------------------------------
 conf_net =conf(classes)
-prior_net =prior()
+--prior_net =prior()
 
 ------------------------------
 loss_net:add(conf_net)
