@@ -1,6 +1,22 @@
 require 'image'
 
+function pyramid(batch,class)
+local batch = batch or 1
+local pyd ={}
 
+for iter =1, 7 do
+
+local size = math.pow(2,iter-1)
+local d_box = 6 ;
+if iter ==7 then size = size-1; d_box=3 end
+
+pyd[iter] = torch.Tensor(batch,d_box*class,size,size):fill(0)
+
+end        
+
+return pyd
+end
+-------------------------------------------------------
 function class2num(class)
 
 local Class ={'aeroplane','bicycle','bird','boat','bottle','bus','car',
@@ -18,7 +34,7 @@ assert(nil,'wrong class name')
 
 end
 
-
+-----------------------------------------------------------
 function jaccard(anno1,anno2)
 -- format : cx cy w h
 local I,U
@@ -39,7 +55,7 @@ end
 
 end
 
-
+-----------------------------------------------------------
 function jaccard_matrix(tensor,gt) 
 gt:resize(4,1,1,1)
 

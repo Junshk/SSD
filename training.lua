@@ -3,7 +3,7 @@ require 'make_net'
 require 'loss'
 require 'gnuplot'
 require 'FetchData'
-
+require 'MultiBoxLoss'
 
 
 Classes={'aeroplane','bicycle','bird','boat','bottle','bus','car',
@@ -59,11 +59,12 @@ grads:zero()
 local output = net:forward(input:cuda())
 -----------------------------------
 
-
+local err, df_dx = MultiBoxLoss(output,target)
 ------------------------------------
-local err = criterion:forward(output,target)
-local df_dx = criterion:backward(output,target)
-net:backward(input:cuda(),df_dx:cuda())
+--local err = criterion:forward(output,target)
+--local df_dx = criterion:backward(output,target)
+
+net:backward(input:cuda(),df_dx)
 
 
 

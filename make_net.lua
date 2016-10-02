@@ -2,9 +2,9 @@ require 'nn'
 require 'cudnn'
 require 'cunn'
 require 'loadcaffe'
-require 'user_define'
+require 'ChannelNormalization'
 
-local nninit =require 'nninit'
+local nninit = require 'nninit'
 local net = nn.Sequential()
 cutorch.setDevice(2)
 -------------------------------------------------------------------------------
@@ -44,9 +44,9 @@ local reshape = nn.ParallelTable()
 local dim ={256,256,256,256,512,1024,512}
   
 for iter_loc = 1, 6 do 
-parl:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1,1,1))
+parl:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1,1,1):init('weight',nninit.xavier))
 end
-parl:add((nn.SpatialConvolution(dim[7],4*3,3,3,1,1,1,1)))
+parl:add(nn.SpatialConvolution(dim[7],4*3,3,3,1,1,1,1):init('weight',nninit.xavier))
 
 reshape:add(nn.Reshape(4,6*1))
 reshape:add(nn.Reshape(4,6*2*2))
@@ -58,11 +58,11 @@ reshape:add(nn.Reshape(4,3*63*63))
   
   
   locnet:add(parl)
---  locnet:add(reshape)
---  locnet:add(nn.JoinTable(2))
+  locnet:add(reshape)
+  locnet:add(nn.JoinTable(2,2))
 
 --locnet:add(nn.FlattenTable())
-
+cudnn.convert(locnet,cudnn)
 return locnet
 end
 
@@ -73,9 +73,9 @@ local reshape = nn.ParallelTable()
 local confnet = nn.Sequential()
   
 for iter_conf = 1, 6 do 
-parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1):init('weight','nninit.xavier'))
+parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1):init('weight',nninit.xavier))
 end
-parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1):init('weight','nninit.xavier'))
+parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1):init('weight',nninit.xavier))
 
   reshape:add(nn.Reshape(classes,6*1))
 reshape:add(nn.Reshape(classes,6*2*2))
@@ -86,10 +86,10 @@ reshape:add(nn.Reshape(classes,6*32*32))
 reshape:add(nn.Reshape(classes,3*63*63))
 
   confnet:add(parl)
---  confnet:add(reshape)
---  confnet:add(nn.JoinTable(2))
+  confnet:add(reshape)
+  confnet:add(nn.JoinTable(2,2))
 --confnet:add(nn.FlattenTable())
-
+cudnn.convert(confnet,cudnn)
 return confnet
 end
 
@@ -133,30 +133,30 @@ local seq1,seq2,seq3,seq4 = nn.Sequential(),nn.Sequential(), nn.Sequential(), nn
 
 local seq5, concat6 = nn.Sequential(), nn.ConcatTable()
 
-concat6:add(nn.SpatialAveragePooling(2,2))
+concat6:add(cudnn.SpatialAveragePooling(2,2))
 concat6:add(nn.Identity())
 
-seq5:add(nn.SpatialConvolution(256,128,1,1):init('weight','nninit.xavier'))
-seq5:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight','nninit.xavier'))
+seq5:add(cudnn.SpatialConvolution(256,128,1,1):init('weight',nninit.xavier))
+seq5:add(cudnn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
 seq5:add(concat6)
 concat5:add(seq5)
 concat5:add(nn.Identity())
 
 
-seq4:add(nn.SpatialConvolution(256,128,1,1):init('weight','nninit.xavier'))
-seq4:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight','nninit.xavier'))
+seq4:add(cudnn.SpatialConvolution(256,128,1,1):init('weight',nninit.xavier))
+seq4:add(cudnn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
 seq4:add(concat5)
 concat4:add(seq4)
 concat4:add(nn.Identity())
 
-seq3:add(nn.SpatialConvolution(512,128,1,1):init('weight','nninit.xavier'))
-seq3:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight','nninit.xavier'))
+seq3:add(cudnn.SpatialConvolution(512,128,1,1):init('weight',nninit.xavier))
+seq3:add(cudnn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
 seq3:add(concat4)
 concat3:add(seq3)
 concat3:add(nn.Identity())
 
-seq2:add(nn.SpatialConvolution(1024,256,1,1):init('weight','nninit.xavier'))
-seq2:add(nn.SpatialConvolution(256,512,3,3,2,2,1,1):init('weight','nninit.xavier'))
+seq2:add(cudnn.SpatialConvolution(1024,256,1,1):init('weight',nninit.xavier))
+seq2:add(cudnn.SpatialConvolution(256,512,3,3,2,2,1,1):init('weight',nninit.xavier))
 seq2:add(concat3)
 concat2:add(seq2)
 concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier
@@ -166,10 +166,10 @@ concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1
 for iter = 24, 30 do
 seq1:add(base.modules[iter])
 end
-seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
+seq1:add(cudnn.SpatialMaxPooling(3,3,1,1,1,1))
 
 seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6))  -- subsampling fc 6
-seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7)) -- subsampling fc 7
+seq1:add(cudnn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7)) -- subsampling fc 7
 seq1:add(concat2)
 
 concat1:add(seq1)
@@ -189,14 +189,14 @@ net:add(nn.FlattenTable())
 -- here is loc prior , conf
 local loss_net = nn.ConcatTable()
 local loc_net = loc()
-local conf = nn.ParallelTable()
-local prior = nn.ParallelTable()
+local conf_net =conf(classes)
+
+
+
 ---------------------------------
 --------------------------------
 
 ------------------------------
-conf_net =conf(classes)
---prior_net =prior()
 
 ------------------------------
 loss_net:add(conf_net)
@@ -204,7 +204,7 @@ loss_net:add(loc_net)
 --loss_net:add(prior_net)
 
 
-net:add(loss_net) -- 3 output
+net:add(loss_net) -- 2 table output
 elseif base_name == 'residual' then
 
 print('residual')
@@ -213,7 +213,7 @@ end
 
 
 net:cuda()
-cudnn.convert(net,cudnn)
+
 return net
 
 end

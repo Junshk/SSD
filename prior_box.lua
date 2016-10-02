@@ -77,10 +77,6 @@ end
 
 -- example
 --print(prior_box({w=500,h=500},{w=4,h=3},{min=475,max=555},{2,3}))
-
-function total_box()
-
-
 local t1 = prior_box(500,63,{min=35},{2})
 local t2= prior_box(500,32,{max=155,min=75},{2,3})
 local t3 = prior_box(500,16,{max=235,min=155},{2,3})
@@ -89,6 +85,10 @@ local t5 = prior_box(500,4,{max=395,min=315},{2,3})
 local t6 = prior_box(500,2,{max=475,min=395},{2,3})
 local t7 = prior_box(500,1,{max=555,min=475},{2,3})
 
+
+function total_box()
+
+
 --flat
 
 --concat
@@ -96,18 +96,30 @@ local t7 = prior_box(500,1,{max=555,min=475},{2,3})
 return {t1, t2 ,t3, t4, t5 ,t6, t7}
 end
 
-
-
 function matching_gt_matrix(gt) -- xmin, ymin, xmax, ymax
 
 local real_size = total_box()
-
+local size_default = 20097
 local matched ={}
+local match_tensor =torch.ByteTensor(1,size_default)
+
+local idx =1
 
 for iter = 1, #real_size do
 local matching_for_tensor = torch.gt(jaccard_matrix(real_size[iter],gt),0.5)
-table.insert(matched,matching_for_tensor)
+
+local element = torch.numel(matching_for_tensor)
+
+match_tensor[{{},{idx,idx+element-1}}] = matching_for_tensor:reshape(element)
+idx = idx + element
+--table.insert(matched,matching_for_tensor)
 end
 
-return matched
+
+-- resize to 2d
+
+
+
+
+return match_tensor--matched
 end

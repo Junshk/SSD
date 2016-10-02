@@ -9,7 +9,7 @@ local SSDloss,parent = torch.class('nn.SSDloss','nn.Modules')
 
 -- batch by default by class or 4
 
-function SSDloss:__init(default)
+function SSDloss:__init(default,alpha)
 
 assert(type(default)=='number','class must be a number')
 self.cuda =false
@@ -31,7 +31,7 @@ assert(type(input) == 'table' and  type(target)=='table','loss input,target type
 local c = input[1] -- batch by default by class
 local l = input[2] -- t_i+delta
 
-local x = target[1] -- 1~21 batch by default
+local x = target[1] 
 local g = target[2]
 
 local batch = c:size(1)
@@ -45,10 +45,9 @@ local positive = torch.sum(torch.sum(x[{{},{},{1,20}}],3),2):squeeze() --batch
 local nMax_idx = torch.gt(positive*3,self.default-positive)
 local negativeMax = positive*3 ; negativeMax[nMax_idx] = self.default-positive[nMax_idx]
 
+
 local _,sort_idx = torch.max(c[{{},{},{21}}],2)
 local topk_idx = sort_idx:index(2,negativeMax).....
-
-local matchingBox = x[]
 
 
 self.N = torch.sum(x,2); -- default by 1
