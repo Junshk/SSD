@@ -2,6 +2,8 @@ require 'optim'
 require 'make_net'
 require 'loss'
 require 'gnuplot'
+require 'FetchData'
+--require 'prior_box'
 --SGD
 optimState ={
 
@@ -20,7 +22,11 @@ net:training()
 net:cuda()
 cudnn.convert(net,cudnn)
 local criterion = nn.SSDloss(default)
-criterion:cuda()
+--criterion:cuda()
+
+
+--local layer_size =total_box()
+
 
 
 local params, grads = net:getParameters()
@@ -38,6 +44,10 @@ grads:zero()
 
 
 local output = net:forward(input:cuda())
+-----------------------------------
+
+
+------------------------------------
 local err = criterion:forward(output,target)
 local df_dx = criterion:backward(output,target)
 net:backward(input:cuda(),df_dx:cuda())
