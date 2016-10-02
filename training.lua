@@ -1,6 +1,6 @@
 require 'optim'
 require 'make_net'
-require 'loss'
+--require 'loss'
 require 'gnuplot'
 require 'FetchData'
 require 'MultiBoxLoss'

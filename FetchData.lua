@@ -59,6 +59,7 @@ function augment(img,gt_anno_class) --gt_anno : 4 by ...
 
 local w, h = img:size(3) , img:size(2)
 --random
+::otherOpt::
 local random = math.random(1,3)
 local random_aspect = math.pow(2,math.random(-1,1))
 local flip = math.random(1,2)
@@ -67,19 +68,30 @@ local random_size =math.pow(0.1,math.random())
 --local bg_class = torch.ByteTensor(gt_anno_class:size(2)):fill(0)
 
 -- augment_param
-local sx,sy
+
 local cx_ratio ,cy_ratio = (gt_anno_class[{1}]+gt_anno_class[{3}])/2, (gt_anno_clas[{2}]+gt_anno_class[{4}])/2
 local crop_w, crop_h = math.floor(random_size*w*math.sqrt(random_aspect)), math.floor(random_size*h*math.sqrt(1/random_aspect))
 crop_w,crop_h = math.min(w,crop_w),math.min(h,crop_h)
+local sx,sy =math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
+
 
 --------------------------------
 if random ==1 then
 elseif random ==2 then
+local min_jaccard_ratio = math.random(1,5)/5-0.1
+local patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/w,(sy+crop_h-1)/h})
+local idx =0
 
-jaccard()
+repeat 
+if idx>20 then goto otherOpt end
+sx,sy=math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
+patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/h,(sy+crop_h)/h})
+
+idx = idx+1
+until  torch.min(jaccard(patch,gt_anno_class:t()))<min_jaccard_ratio
+
+
 elseif random ==3 then
-
-sx,sy =math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
 
 img = image.crop(img,sx,sy,sx+w-1,sy+h-1)
 
@@ -90,11 +102,11 @@ gt_anno_class[{2}] = (gt_anno_class[{2}]-sy/h):cmax(0)*h/crop_h
 gt_anno_class[{3}] = (gt_anno_class[{3}]-sx/w):cmin(crop_w/w)*w/crop_w
 gt_anno_class[{4}] = (gt_anno_class[{4}]-sy/h):cmin(crop_h/h)*h/crop_h
 
-local bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h),0)
+local bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w+1),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h+1),0)
 
 bg:clamp(0,1)
 -- remove gt out of bd
-
+gt_anno_class = (gt_anno_class:t()[(1-bg):byte()]):t()
 -------------
 local preSize = img:size()
 img = image.scale(img,500,500) -- anno not changed

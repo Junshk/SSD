@@ -38,7 +38,7 @@ end
 function jaccard(anno1,anno2)
 -- format : cx cy w h
 local I,U
-if type(anno) == 'table' then
+if type(anno1) == 'table' then
 I = (math.min(anno1.cx+anno1.w/2,anno2.cx+anno2.w/2)-math.max(anno1.cx-anno1.w/2,anno2.cx-anno2.w/2))
 *(math.min(anno1.cy+anno2.h/2,anno2.cy+anno2.h/2)-math.max(anno1.cy-anno1.h/2,anno2.cy-anno2.h/2))
 U = anno1.w*anno1.h+anno2.w*anno2.h - I
