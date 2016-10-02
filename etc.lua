@@ -29,10 +29,10 @@ gt:resize(4,1,1,1)
 
 local expandGt = gt:expandAs(tensor) -- 4 by ~
 
-local xdelta = torch.min(tensor[{{3}}],expandGt[{{3}}])-
-torch.max(tensor[{{1}}],expandGt[{{1}}])
-local ydelta = torch.max(tensor[{{4}}],expandGt[{{4}}])-
-torch.max(tensor[{{2}}],expandGt[{{2}}])
+local xdelta = torch.cmin(tensor[{{3}}],expandGt[{{3}}])-
+torch.cmax(tensor[{{1}}],expandGt[{{1}}])
+local ydelta = torch.cmax(tensor[{{4}}],expandGt[{{4}}])-
+torch.cmax(tensor[{{2}}],expandGt[{{2}}])
 
 local I = xdelta:cmul(ydelta)
 
