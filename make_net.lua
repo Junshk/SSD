@@ -73,9 +73,9 @@ local reshape = nn.ParallelTable()
 local confnet = nn.Sequential()
   
 for iter_conf = 1, 6 do 
-parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1))
+parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1):init('weight','nninit.xavier'))
 end
-parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1))
+parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1):init('weight','nninit.xavier'))
 
   reshape:add(nn.Reshape(classes,6*1))
 reshape:add(nn.Reshape(classes,6*2*2))
@@ -136,27 +136,27 @@ local seq5, concat6 = nn.Sequential(), nn.ConcatTable()
 concat6:add(nn.SpatialAveragePooling(2,2))
 concat6:add(nn.Identity())
 
-seq5:add(nn.SpatialConvolution(256,128,1,1))
-seq5:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1))
+seq5:add(nn.SpatialConvolution(256,128,1,1):init('weight','nninit.xavier'))
+seq5:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight','nninit.xavier'))
 seq5:add(concat6)
 concat5:add(seq5)
 concat5:add(nn.Identity())
 
 
-seq4:add(nn.SpatialConvolution(256,128,1,1))
-seq4:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1))
+seq4:add(nn.SpatialConvolution(256,128,1,1):init('weight','nninit.xavier'))
+seq4:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight','nninit.xavier'))
 seq4:add(concat5)
 concat4:add(seq4)
 concat4:add(nn.Identity())
 
-seq3:add(nn.SpatialConvolution(512,128,1,1))
-seq3:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1))
+seq3:add(nn.SpatialConvolution(512,128,1,1):init('weight','nninit.xavier'))
+seq3:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight','nninit.xavier'))
 seq3:add(concat4)
 concat3:add(seq3)
 concat3:add(nn.Identity())
 
-seq2:add(nn.SpatialConvolution(1024,256,1,1))
-seq2:add(nn.SpatialConvolution(256,512,3,3,2,2,1,1))
+seq2:add(nn.SpatialConvolution(1024,256,1,1):init('weight','nninit.xavier'))
+seq2:add(nn.SpatialConvolution(256,512,3,3,2,2,1,1):init('weight','nninit.xavier'))
 seq2:add(concat3)
 concat2:add(seq2)
 concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier

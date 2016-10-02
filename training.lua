@@ -25,9 +25,10 @@ weightDecay = 0.0005
 }
 
 local batch_size = 32
-
+-------------------------------------------------------------------------------
 
 function training()
+
 local net = make_net('vgg')
 net:training()
 net:cuda()
@@ -36,8 +37,7 @@ local criterion = nn.SSDloss(default)
 --criterion:cuda()
 
 
---local layer_size =total_box()
-
+local img_Info_table = ImgInfo()
 
 
 local params, grads = net:getParameters()
@@ -48,7 +48,9 @@ if x ~= params then
         params:copy(x)
         end
 
-local input, target = patchFetch() --imgtensor, table
+
+
+local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
         
 grads:zero()
 

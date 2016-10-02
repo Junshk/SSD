@@ -1,28 +1,36 @@
 require 'image'
-local xml = require 'xml';
-
-local num2007 = 0
-local path_2007 = 'VOC2007/'
-local path_2012 = 'VOC2012/'
 torch.setdefaulttensortype('torch.FloatTensor')
 
+local xml = require 'xml'
+
+
+function pascal_save(opt)
 local data = {}
-data.folder, data.name, data.image, data.object = {},{},{},{}
+data.folder, data.imgname, data.image, data.object = {},{},{},{}
 
-print('VOC 2007....')
-local path = 'VOCdevkit/' .. path_2007
+local root = opt.root or 'VOCdevkit/'
+
+local idxMax = opt.idxMax or 1000
+local year = opt.year or '2007'
+local folder = self.root .. '/VOC'..year
+
+local saveName = 'VOC'..year ..'_'
+if idxMax ~= math.max then saveName = saveName .. idxMax end
+
+print(folder)
+
 local idx = 1
-for image_name in paths.iterfiles(path .. 'JPEGImages/') do
+for image_name in paths.iterfiles(folder.. '/JPEGImages/') do
 
-	if idx <= 1000 then
+	if idx <= idxMax then
 
 		if idx%1000==0 then print(idx) end
-		local name = image_name:sub(1,-5)
-		local annot = xml.loadpath(path .. 'Annotations/' .. name .. '.xml')
+		local imgname = image_name:sub(1,-5)
+		local annot = xml.loadpath(folder .. '/Annotations/' .. imgname .. '.xml')
 		
-		data.folder[idx] = path_2007
-		data.name[idx] = name
-		data.image[idx] = image.load(path .. 'JPEGImages/' .. name .. '.jpg')
+		data.folder[idx] = folder
+		data.imgname[idx] = imgname
+		data.image[idx] = image.load(folder .. '/JPEGImages/' .. imgname .. '.jpg')
 		data.image[idx] = (data.image[idx]*255):byte()
 		data.object[idx] = {}
 		
@@ -44,8 +52,9 @@ for image_name in paths.iterfiles(path .. 'JPEGImages/') do
 						elseif v.xml=='difficult' then
 							object.difficult = v[1]
 						elseif v.xml=='bndbox' then
-							object.bbox = torch.Tensor({v[1][1],v[2][1],v[4][1],v[4][1]})
-						end
+							object.bbox = torch.Tensor({v[2][1],v[4][1],v[1][1],v[3][1]}) -- xmin, ymin,xmax,ymax
+					          else assert(0,'wrong xml info')
+            end
 					end
 				end
 			end
@@ -57,20 +66,46 @@ for image_name in paths.iterfiles(path .. 'JPEGImages/') do
 	idx = idx + 1
 	collectgarbage()
 end
-print('#2007 images : ' .. idx-1)
---[[
-print('VOC 2012....')
-path = 'VOCdevkit/' .. path_2012
-for image_name in paths.iterfiles(path .. 'JPEGImages/') do
-	if idx%1000==0 then print(idx) end
-	local name = image_name:sub(1,-5)
 
-	if name:sub(1,4)~='2007' then
-		local annot = xml.loadpath(path .. 'Annotations/' .. name .. '.xml')
+
+torch.save(saveName,data)
+
+end
+function ImgInfo()
+local Info = { }
+local year = {'2007','2012'}
+
+for k,year_path in pairs(year) do
+  local path = 'VOCdevkit/VOC'..year_path..'/'
+for image_name in paths.iterfiles(path..'/JPEGImages/') do
+table.insert(Info,{path = path, image_name = image_name})
+
+end
+end
+return Info
+end
+
+function pascal_loadAImage(opt)
+local data = {}
+data.folder, data.imgname, data.image, data.object = {},{},{},{}
+local idx = 1
+
+local path = opt.info.path
+
+
+--for image_name in paths.iterfiles(folder.. '/JPEGImages/') do
+local image_name = opt.info.image_name
+
+--	if idx <= idxMax then
+
+--		if idx%1000==0 then print(idx) end
+		local imgname = image_name:sub(1,-5)
+--print(imgname)
+local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
 		
-		data.folder[idx] = path_2007
-		data.name[idx] = name
-		data.image[idx] = image.load(path .. 'JPEGImages/' .. name .. '.jpg')
+		data.folder[idx] = folder
+		data.imgname[idx] = imgname
+		data.image[idx] = image.load(path .. '/JPEGImages/' .. imgname .. '.jpg')
 		data.image[idx] = (data.image[idx]*255):byte()
 		data.object[idx] = {}
 		
@@ -92,23 +127,24 @@ for image_name in paths.iterfiles(path .. 'JPEGImages/') do
 						elseif v.xml=='difficult' then
 							object.difficult = v[1]
 						elseif v.xml=='bndbox' then
-							object.bbox = torch.Tensor({v[1][1],v[2][1],v[4][1],v[4][1]})
-						end
+							object.bbox = torch.Tensor({v[2][1],v[4][1],v[1][1],v[3][1]}) -- xmin, ymin,xmax,ymax
+					          else assert(0,'wrong xml info')
+            end
 					end
 				end
 			end
-		end
+	
 
-		idx = idx + 1
-	else
-		num2007 = num2007 + 1
+
 	end
-	collectgarbage()
-end
---]]
-print('End. Total # iamges = ' .. idx-1)
-print('There were ' .. num2007 .. ' 2007 images in 2012 dataset')
 
-print('saving...')
---torch.save('data.t7',data)
-torch.save('data_sub.t7',data)
+--	idx = idx + 1
+	collectgarbage()
+
+
+
+return data
+
+end
+
+

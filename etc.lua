@@ -1,6 +1,23 @@
 require 'image'
 
 
+function class2num(class)
+
+local Class ={'aeroplane','bicycle','bird','boat','bottle','bus','car',
+           'cat','chair','cow','diningtable','dog','horse','motorbike',
+           'person','pottedplant','sheep','sofa','train','tvmonitor'}
+
+
+for k,v  in pairs(Class) do
+  
+  if v == class then return k end
+
+end        
+
+assert(nil,'wrong class name')
+
+end
+
 
 function jaccard(anno1,anno2)
 -- format : cx cy w h

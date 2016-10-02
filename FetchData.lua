@@ -1,13 +1,51 @@
 require 'image'
 require 'etc'
-require 'DataSetPascal'
+require 'pascal'
 
 
 
-function dataload()
+function dataload(ImgInfo) -- with normalize
+
+--[[
+local num = #data.name
+
+local fetchNum = math.random(1,num) 
+
+local img = data.image[fetchNum]
+local annoNum = #data.object[fetchNum]
+
+local anno_class = {}
+
+for iter = 1, annoNum do
+
+local anno = data.object[fetchNum][iter].bbox
+local class = class2num(data.object[fetchNum][iter].class)
+
+table.insert(anno_class,torch.concat(anno,class))
+
+end
+]]--
+
+local fetchNum = math.random(1,#ImgInfo) 
 
 
-return img, anno
+data = pascal_loadAImage({info = ImgInfo[fetchNum]})
+local img = data.image[1]
+local annoNum = #data.object[1]
+
+local anno_class = {}
+
+for iter = 1, annoNum do
+
+local anno = data.object[1][iter].bbox
+local class = class2num(data.object[1][iter].class)
+
+table.insert(anno_class,torch.cat(anno,torch.Tensor({class})))
+
+end
+
+
+return img:float()/255, anno_class
 end
 
 
@@ -50,15 +88,15 @@ end
 return img, anno
 end
 
+function patchFetch(batch_size,ImgInfo)
 
-function patchFetch(batch_size,datatype)
 local input_batch = torch.Tensor(batch_size,3,500,500)
 local input_anno = torch.Tensor(batch_size,default,4):fill(0) 
 local input_class = torch.Tensor(batch_size,default,1):fill(0) --1~21
 
 
 for iter =1,batch_size do
-local img, anno_class =  dataload(datatype) -- default by 5
+local img, anno_class =  dataload(ImgInfo) -- default by 5
 local augmentedImg,augmentedAnno = augment(img,anno_class) -- for a image
 input_batch[{{iter}}] = augmentedImg
 input_anno[{{iter}}] = augmentedAnno
