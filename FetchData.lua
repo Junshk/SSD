@@ -1,9 +1,14 @@
 require 'image'
 require 'etc'
+require 'DataSetPascal'
 
 
 
+function dataload()
 
+
+return img, anno
+end
 
 
 function augment(img,gt_anno)
@@ -46,18 +51,18 @@ return img, anno
 end
 
 
-
-function patchFetch(batch_size)
+function patchFetch(batch_size,datatype)
 local input_batch = torch.Tensor(batch_size,3,500,500)
-local input_anno = torch.Tensor(batch_size,default,4):fill(0)
-local input_class = torch.Tensor(batch_size,default,21):fill(0)
+local input_anno = torch.Tensor(batch_size,default,4):fill(0) 
+local input_class = torch.Tensor(batch_size,default,1):fill(0) --1~21
 
-local img, anno
 
 for iter =1,batch_size do
-local augmentedImg,augmentedAnno = augment(img,anno)
+local img, anno_class =  dataload(datatype) -- default by 5
+local augmentedImg,augmentedAnno = augment(img,anno_class) -- for a image
 input_batch[{{iter}}] = augmentedImg
 input_anno[{{iter}}] = augmentedAnno
+input_class[{{iter}}] = anno_class[{{},{5}}]
 end
 
 
