@@ -36,9 +36,13 @@ torch.cmax(tensor[{{2}}],expandGt[{{2}}])
 
 local I = xdelta:cmul(ydelta)
 
+local tensor_size = tensor:size(); tensor_size[1]=1
+local tensor_element = torch.numel(tensor[{{1}}])
+local t_t = (tensor[{{3}}]-tensor[{{1}}]):reshape(tensor_element)
+t_t:cmul(tensor[{{4}}]-tensor[{{2}}]:reshape(tensor_element))
 
-local U = (tensor[{{3}}]-tensor[{{1}}]):cmul(tensor[{{4}}]-tensor[{{2}}])
-+(gt[{{3}}]-gt[{{1}}])*(gt[{{4}}]-gt[{{2}}]) - I
+gt=gt:squeeze()
+local U =t_t:reshape(tensor_size)+(gt[{{3}}]-gt[{{1}}])*(gt[{{4}}]-gt[{{2}}]) - I
 
 
 

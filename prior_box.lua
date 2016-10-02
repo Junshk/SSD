@@ -106,7 +106,7 @@ local matched ={}
 
 for iter = 1, #real_size do
 local matching_for_tensor = torch.gt(jaccard_matrix(real_size[iter],gt),0.5)
-table.insert(matched,matching(real_size[iter],matching_for_tensor))
+table.insert(matched,matching_for_tensor)
 end
 
 return matched
