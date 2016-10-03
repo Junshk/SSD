@@ -24,11 +24,12 @@ weightDecay = 0.0005
 
 }
 
-local batch_size =2 
+local batch_size =6 
 -------------------------------------------------------------------------------
 
 function training(opt)
 
+if paths.dirp('model') ==false then os.execute('mkdir model') end
 local net = make_net('vgg')
 net:training()
 net:cuda()
@@ -49,27 +50,28 @@ if x ~= params then
         end
 
 
-
+--local time_0 = os.time()
 local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
-        
+--local time_data = os.time();print('data time =',time_data-time_0 )
 grads:zero()
 
 local detc = torch.sum(torch.gt(target[1],21))+ torch.sum(torch.lt(target[1],1))
-assert(detc~=0 , 'wrong class label')
+assert(detc==0 , 'wrong class label')
 
 local output = net:forward(input:cuda())
 input:float()
+
+--print('time f',os.time()-time_data)
+
 -----------------------------------
-print('forward')
-local err, df_dx_loc,df_dx_conf = MultiBoxLoss(output,target)
+--print('forward')
+local err, df_dx = MultiBoxLoss(output,target)
 ------------------------------------
---local err = criterion:forward(output,target)
---local df_dx = criterion:backward(output,target)
-print('loss')
---net:backward(input:cuda(),{df_dx_conf:cuda(),df_dx_loc:cuda()})
-print('backward')
-
-
+--print('time l',os.time()-time_data)
+net:backward(input:cuda(),df_dx:cuda())
+--print('backward')
+--print('time b',os.time()-time_data)
+collectgarbage();
 return err,grads
 end -- end local feval
 
@@ -107,6 +109,8 @@ end
 
 
 net:clearState()
+
+
 torch.save('model/'..basenet..'SSDnet.t7',net)
 
 

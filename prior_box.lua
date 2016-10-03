@@ -89,11 +89,7 @@ local t7 = prior_box(500,1,{max=555,min=475},{2,3})
 function total_box()
 
 
---flat
-
---concat
-
-return {t1, t2 ,t3, t4, t5 ,t6, t7}
+return {t7, t6 ,t5, t4, t3 ,t2, t1}
 end
 
 function matching_gt_matrix(gt) -- xmin, ymin, xmax, ymax
@@ -118,8 +114,28 @@ end
 
 -- resize to 2d
 
-
-
-
 return match_tensor--matched
+end
+
+
+function whcxy()
+local whcxy = torch.Tensor(4,20097)
+local xy = torch.Tensor(4,20097)
+local real_size = total_box()
+
+local idx =1
+for iter =1 ,#real_size do
+local element = torch.numel(real_size[iter])/4
+local t = real_size[iter]:reshape(4,element)
+xy[{{},{idx,idx+element-1}}] = t
+
+idx =idx+ element
+end
+
+
+whcxy[{{1}}] =xy[{{3}}]-xy[{{1}}]
+whcxy[{{2}}] = xy[{{4}}] -xy[{{2}}]
+whcxy[{{3}}] = (xy[{{3}}]+xy[{{1}}])/2
+whcxy[{{4}}] = (xy[{{4}}]+xy[{{2}}])/2
+return whcxy
 end

@@ -115,7 +115,7 @@ weight_of_fc6 = weight_of_fc6:index(3,sample)
 weight_of_fc6 = weight_of_fc6:transpose(3,4)
 weight_of_fc6 = weight_of_fc6:transpose(2,3)
 weight_of_fc6 = weight_of_fc6:transpose(1,2)
-print()
+--print()
 local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1)
 weight_of_fc7 = weight_of_fc7:index(1,perm_order:long())
 weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
@@ -173,7 +173,7 @@ seq1:add(cudnn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weigh
 seq1:add(concat2)
 
 concat1:add(seq1)
-local ss = nn.Sequential():add(nn.ChannelNormalization(2))
+local ss = nn.Sequential()--:add(nn.ChannelNormalization(2))
 ss:add(nn.Mul():init('weight',nninit.constant,20))
 concat1:add(ss)--cudnn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1))
 -- 4_3
@@ -187,22 +187,20 @@ net:add(nn.FlattenTable())
 
 
 -- here is loc prior , conf
-local loss_net = nn.ConcatTable()
+local loss_net = nn.Sequential()
+
+local concat = nn.ConcatTable()
 local loc_net = loc()
 local conf_net =conf(classes)
 
 
 
----------------------------------
 --------------------------------
-
 ------------------------------
-
-------------------------------
-loss_net:add(conf_net)
-loss_net:add(loc_net)
---loss_net:add(prior_net)
-
+concat:add(conf_net)
+concat:add(loc_net)
+loss_net:add(concat)
+loss_net:add(nn.JoinTable(2,1))
 
 net:add(loss_net) -- 2 table output
 elseif base_name == 'residual' then

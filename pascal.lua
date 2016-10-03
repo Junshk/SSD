@@ -127,8 +127,17 @@ local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
 						elseif v.xml=='difficult' then
 							object.difficult = v[1]
 						elseif v.xml=='bndbox' then
-							object.bbox = torch.Tensor({v[2][1],v[4][1],v[1][1],v[3][1]}) -- xmin, ymin,xmax,ymax
-					          else assert(0,'wrong xml info')
+							local BoundBox = torch.Tensor(4):fill(0)
+              for k_box,v_box in pairs(v) do
+                if v_box.xml == 'xmin' then BoundBox[{1}] =v_box[1]     
+                elseif v_box.xml == 'ymin' then BoundBox[{2}] =v_box[1]
+                elseif v_box.xml == 'xmax' then BoundBox[{3}] =v_box[1]
+                elseif v_box.xml == 'ymax' then BoundBox[{{4}}] =v_box[1]
+                end
+              end
+               object.bbox = BoundBox -- xmin, ymin,xmax,ymax
+					  
+            else assert(0,'wrong xml info')
             end
 					end
 				end

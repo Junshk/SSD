@@ -5,13 +5,15 @@
 
 
 require 'nn'
+require 'cunn'
+require 'cudnn'
 -- I refer to torch nn Normalize.lua code, this code different little bit from that
 local ChannelNormalization, parent = torch.class('nn.ChannelNormalization','nn.Module')
 
 
 function ChannelNormalization:__init(p, eps)
 parent.__init(self)
-assert(p, 'p-nrom not provided')
+assert(p, 'p-norm not provided')
 assert(p > 0, p..'-norm not supported')
 self.p =p
 self.eps = eps or 1e-10
@@ -32,7 +34,8 @@ end
 self._output = self._output or input.new()
 self.norm = self.norm or input.new()
 self.normp = self.normp or input.new()
-
+self._repeat = self._repeat or input.new()
+self._expand = self._expand or input.new()
 self._output:resizeAs(input)
 
 
@@ -40,9 +43,14 @@ self.norm = torch.norm(input,self.p,featureDim)
 self.normp = self.norm:pow(self.p)
 self.norm:add(self.eps)
 
+self._expand:expandAs(self.norm,self._output)
 
-self._output:cdiv(input, self.norm:expandAs(input))
-
+if torch.type(input) == 'torch.CudaTensor' then
+self._repeat:resizeAs(self._expand):copy(self._expand)
+self._output:cdiv(self._repeat)
+        else
+self._output:cdiv(self._expand)
+end
 --self.stdnorm = torch.Tensor(input:size(featureDim)):fill(1)
 --self.stdnorm = self.stdnorm:norm(self.p)+self.eps
 
@@ -122,7 +130,7 @@ nn.utils.clear(self,
 'buffer',
 'norm',
 'normp',
-'buffer2'
+'buffer2', '_expand', '_repeat'
 })
 return parent.clearState(self)
 end

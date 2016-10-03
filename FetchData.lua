@@ -5,10 +5,11 @@ require 'prior_box'
 require 'nn'
 
 torch.setdefaulttensortype('torch.FloatTensor')
+--------------------------------------------
 --------------------------------------------------------------
 function augment(img,gt_anno_class) --gt_anno : 4 by ...
-
-
+--print('gt',gt_anno_class)
+local anno_clone = gt_anno_class:clone()
 
 --local anno = gt_anno_class[{{1,4}}]:clone()
 
@@ -32,7 +33,9 @@ local sx,sy =math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
 
 --------------------------------
 if random ==1 then
-elseif random ==2 then
+
+else
+        if random ==2 then
 local min_jaccard_ratio = math.random(1,5)/5-0.1
 local patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/w,(sy+crop_h-1)/h})
 local idx =0
@@ -44,69 +47,81 @@ patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/h,(sy+crop_h)/h}):reshape(4,1)
 
 idx = idx+1
 until  torch.min(jaccard_matrix(gt_anno_class[{{1,4}}],patch))<min_jaccard_ratio
-img = image.crop(img,sx,sy,sx+crop_w-1,sy+crop_h-1)
-
-elseif random ==3 then
-
-img = image.crop(img,sx,sy,sx+crop_w-1,sy+crop_h-1)
 
 end
-------------------------------
-gt_anno_class[{1}] = (gt_anno_class[{1}]-sx/w):cmax(0):cmin(crop_w/w)*w/crop_w
-gt_anno_class[{2}] = (gt_anno_class[{2}]-sy/h):cmax(0):cmin(crop_h/h)*h/crop_h
-gt_anno_class[{3}] = (gt_anno_class[{3}]-sx/w):cmin(crop_w/w):cmax(0)*w/crop_w
-gt_anno_class[{4}] = (gt_anno_class[{4}]-sy/h):cmin(crop_h/h):cmax(0)*h/crop_h
 
-local bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w+1),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h+1),0)
+anno_clone[{1}] = (gt_anno_class[{1}]-sx/w):cmax(0):cmin(crop_w/w)*w/crop_w
+anno_clone[{2}] = (gt_anno_class[{2}]-sy/h):cmax(0):cmin(crop_h/h)*h/crop_h
+anno_clone[{3}] = (gt_anno_class[{3}]-sx/w):cmin(crop_w/w):cmax(0)*w/crop_w
+anno_clone[{4}] = (gt_anno_class[{4}]-sy/h):cmin(crop_h/h):cmax(0)*h/crop_h
+
+local bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w+1),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h+1),0)+torch.eq(anno_clone[{1}],anno_clone[{3}])+torch.eq(anno_clone[{2}],anno_clone[{4}])
 
 bg:clamp(0,1)
 -- remove gt out of bd
 
-local tf_fg = nn.Unsqueeze(1):forward(1-bg:float())
+
+--print('bg',bg)
+
+local tf_fg = (1-bg:float()):view(1,gt_anno_class:size(2))
 tf_fg = tf_fg:expandAs(gt_anno_class)
 
 
-gt_anno_class = (gt_anno_class[tf_fg:byte()])
----print(gt_anno_class)
--------------
-local preSize = img:size()
+anno_clone = (anno_clone[tf_fg:byte()])
+if anno_clone:dim() ==0 then return nil end
+
+
+local element_anno = torch.numel(anno_clone)
+anno_clone = anno_clone:view(5,element_anno/5)
+
+
+
+img = image.crop(img,sx,sy,sx+crop_w-1,sy+crop_h-1)
+
+
+end
+------------------------------
+
+--print('ano cle',anno_clone)-------------
+
+
+
 img = image.scale(img,500,500) -- anno not changed
 
 -- compute anno of img
 
 
 
-local class_ = torch.Tensor(1,20097)
-local anno_ = torch.Tensor(4,20097)
+local class_ = torch.Tensor(1,20097):fill(21)
+local anno_ = torch.Tensor(4,20097):fill(0)
 
 --print('dim conf' , gt_anno_class)
-if gt_anno_class:dim() ==0 then return nil end
+anno_clone[{{1,4}}]:clamp(0,1)
 
 
-local element_gt_anno = torch.numel(gt_anno_class)
-gt_anno_class = gt_anno_class:view(5,element_gt_anno/5)
 
-gt_anno_class[{{1,4}}]:clamp(0,1)
-
-
---print('before flip ' ,gt_anno_class)
 if flip==1 then 
 img = image.hflip(img)
-gt_anno_class[{{1,4}}] = 1 - gt_anno_class[{{1,4}}]
+anno_clone[{{1}}] = 1 - anno_clone[{{3}}]
+anno_clone[{{3}}] = 1 - anno_clone[{{1}}]
+anno_clone[{{2}}] = 1 - anno_clone[{{4}}]
+anno_clone[{{4}}] = 1 - anno_clone[{{2}}]
+
 end
 -- annotate class num
 
-local anno_n =gt_anno_class:size(2)
+assert(torch.sum(torch.eq(anno_clone[{1}],anno_clone[{3}])+torch.sum(torch.eq(anno_clone[{2}],anno_clone[{4}])))==0 , 'wrong anno_clone',anno_clone  )
+local anno_n =anno_clone:size(2)
 
 for iter = 1, anno_n do
-local gt_iter = gt_anno_class[{{1,4},{iter}}]:squeeze()
-local gt_class =gt_anno_class[{{5},{iter}}]:squeeze()
+local gt_iter = anno_clone[{{1,4},{iter}}]:squeeze()
+local gt_class =anno_clone[{{5},{iter}}]:squeeze()
 
 local matching = matching_gt_matrix(gt_iter)
 assert(gt_class<21 and gt_class >=1 ,'wrong class labeling '..gt_class)
 class_[matching] = gt_class
 gt_iter =gt_iter:squeeze()
-
+--print('gt_iter',gt_iter)
 local whcxy = torch.Tensor({gt_iter[{3}]-gt_iter[{1}],gt_iter[{4}]-gt_iter[{2}],(gt_iter[{1}]+gt_iter[{3}])/2,(gt_iter[{2}]+gt_iter[{4}])/2}):reshape(4,1)
 
 local expand_num = torch.sum(matching)
@@ -135,10 +150,12 @@ for iter = 1, annoNum do
 
 local anno = data.object[1][iter].bbox
 local class = class2num(data.object[1][iter].class)
---print(class,data.object[1][iter].class)
+
+
 anno = anno:cdiv(torch.Tensor({img:size(3),img:size(2),img:size(3),img:size(2)}))
 
 anno_class[{{},{iter}}] = torch.cat(anno,torch.Tensor({class}))
+
 
 end
 
@@ -155,7 +172,7 @@ end
 -------------------------------------------------------------------------
 
 
-
+local prior_whcxy =whcxy()
 
 function patchFetch(batch_size,ImgInfo)
 local default_size = 20097
@@ -173,7 +190,7 @@ input_images[{{iter}}] = augmentedImg
 
 -- default box matching !!
 
-target_anno[{{iter}}] = aug_anno
+target_anno[{{iter}}] = aug_anno - prior_whcxy-- w,h cx,cy
 target_class[{{iter}}] = aug_class
 
 end
