@@ -2,55 +2,10 @@ require 'image'
 require 'etc'
 require 'pascal'
 require 'prior_box'
+require 'nn'
 
-torch.setdeaulttensortype('torch.FloatTensor')
-function dataload(ImgInfo) -- with normalize
-
---[[
-local num = #data.name
-
-local fetchNum = math.random(1,num) 
-
-local img = data.image[fetchNum]
-local annoNum = #data.object[fetchNum]
-
-local anno_class = {}
-
-for iter = 1, annoNum do
-
-local anno = data.object[fetchNum][iter].bbox
-local class = class2num(data.object[fetchNum][iter].class)
-
-table.insert(anno_class,torch.concat(anno,class))
-
-end
-]]--
-
-local fetchNum = math.random(1,#ImgInfo) 
-
-
-data = pascal_loadAImage({info = ImgInfo[fetchNum]})
-local img = data.image[1]
-local annoNum = #data.object[1]
-
-local anno_class = torch.Tensor(5,annoNum)
-
-for iter = 1, annoNum do
-
-local anno = data.object[1][iter].bbox
-local class = class2num(data.object[1][iter].class)
-
-anno = anno:cdiv(torch.Tensor({img:size(3),img:size(2),img:size(3),img:size(2)}))
-
-anno_class[{{},{iter}}] = torch.cat(anno,torch.Tensor({class}))
-
-end
-
-
-return img:float()/255, anno_class
-end
--------------------------------------------------------------------------
-
+torch.setdefaulttensortype('torch.FloatTensor')
+--------------------------------------------------------------
 function augment(img,gt_anno_class) --gt_anno : 4 by ...
 
 
@@ -69,7 +24,7 @@ local random_size =math.pow(0.1,math.random())
 
 -- augment_param
 
-local cx_ratio ,cy_ratio = (gt_anno_class[{1}]+gt_anno_class[{3}])/2, (gt_anno_clas[{2}]+gt_anno_class[{4}])/2
+local cx_ratio ,cy_ratio = (gt_anno_class[{1}]+gt_anno_class[{3}])/2, (gt_anno_class[{2}]+gt_anno_class[{4}])/2
 local crop_w, crop_h = math.floor(random_size*w*math.sqrt(random_aspect)), math.floor(random_size*h*math.sqrt(1/random_aspect))
 crop_w,crop_h = math.min(w,crop_w),math.min(h,crop_h)
 local sx,sy =math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
@@ -85,54 +40,121 @@ local idx =0
 repeat 
 if idx>20 then goto otherOpt end
 sx,sy=math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
-patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/h,(sy+crop_h)/h})
+patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/h,(sy+crop_h)/h}):reshape(4,1)
 
 idx = idx+1
-until  torch.min(jaccard(patch,gt_anno_class:t()))<min_jaccard_ratio
-
+until  torch.min(jaccard_matrix(gt_anno_class[{{1,4}}],patch))<min_jaccard_ratio
+img = image.crop(img,sx,sy,sx+crop_w-1,sy+crop_h-1)
 
 elseif random ==3 then
 
-img = image.crop(img,sx,sy,sx+w-1,sy+h-1)
+img = image.crop(img,sx,sy,sx+crop_w-1,sy+crop_h-1)
 
 end
 ------------------------------
-gt_anno_class[{1}] = (gt_anno_class[{1}]-sx/w):cmax(0)*w/crop_w
-gt_anno_class[{2}] = (gt_anno_class[{2}]-sy/h):cmax(0)*h/crop_h
-gt_anno_class[{3}] = (gt_anno_class[{3}]-sx/w):cmin(crop_w/w)*w/crop_w
-gt_anno_class[{4}] = (gt_anno_class[{4}]-sy/h):cmin(crop_h/h)*h/crop_h
+gt_anno_class[{1}] = (gt_anno_class[{1}]-sx/w):cmax(0):cmin(crop_w/w)*w/crop_w
+gt_anno_class[{2}] = (gt_anno_class[{2}]-sy/h):cmax(0):cmin(crop_h/h)*h/crop_h
+gt_anno_class[{3}] = (gt_anno_class[{3}]-sx/w):cmin(crop_w/w):cmax(0)*w/crop_w
+gt_anno_class[{4}] = (gt_anno_class[{4}]-sy/h):cmin(crop_h/h):cmax(0)*h/crop_h
 
 local bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w+1),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h+1),0)
 
 bg:clamp(0,1)
 -- remove gt out of bd
-gt_anno_class = (gt_anno_class:t()[(1-bg):byte()]):t()
+
+local tf_fg = nn.Unsqueeze(1):forward(1-bg:float())
+tf_fg = tf_fg:expandAs(gt_anno_class)
+
+
+gt_anno_class = (gt_anno_class[tf_fg:byte()])
+---print(gt_anno_class)
 -------------
 local preSize = img:size()
 img = image.scale(img,500,500) -- anno not changed
 
+-- compute anno of img
+
+
+
+local class_ = torch.Tensor(1,20097)
+local anno_ = torch.Tensor(4,20097)
+
+--print('dim conf' , gt_anno_class)
+if gt_anno_class:dim() ==0 then return nil end
+
+
+local element_gt_anno = torch.numel(gt_anno_class)
+gt_anno_class = gt_anno_class:view(5,element_gt_anno/5)
+
+gt_anno_class[{{1,4}}]:clamp(0,1)
+
+
+--print('before flip ' ,gt_anno_class)
 if flip==1 then 
 img = image.hflip(img)
 gt_anno_class[{{1,4}}] = 1 - gt_anno_class[{{1,4}}]
 end
-
--- compute anno of img
-
-gt_anno_class[{{1,4}}]:clamp(0,1)
---gt_anno_class[{5}][bg] = 21
-
-
-local class_ = torch.Tensor(1,20097)
-local anno_ = torch.Tensor(20097,4)
 -- annotate class num
-for iter = 1, gt_anno_class:size(2) do
-local matching = matching_gt_matrix(gt_anno_class[{{1,4},{iter}}])
-class_[matching] = gt_anno_class[{{5}}]
-anno_[matching] = gt_anno_class[{{1,4}}]
+
+local anno_n =gt_anno_class:size(2)
+
+for iter = 1, anno_n do
+local gt_iter = gt_anno_class[{{1,4},{iter}}]:squeeze()
+local gt_class =gt_anno_class[{{5},{iter}}]:squeeze()
+
+local matching = matching_gt_matrix(gt_iter)
+assert(gt_class<21 and gt_class >=1 ,'wrong class labeling '..gt_class)
+class_[matching] = gt_class
+gt_iter =gt_iter:squeeze()
+
+local whcxy = torch.Tensor({gt_iter[{3}]-gt_iter[{1}],gt_iter[{4}]-gt_iter[{2}],(gt_iter[{1}]+gt_iter[{3}])/2,(gt_iter[{2}]+gt_iter[{4}])/2}):reshape(4,1)
+
+local expand_num = torch.sum(matching)
+anno_[matching:expand(4,20097)] = whcxy:expand(4,expand_num)--////////////////////
 end
 
-return img, anno_:t(), class_
+
+return img, anno_, class_
 end
+--------------------------------------------------------
+function dataload(ImgInfo) -- with normalize
+
+::re::
+
+local fetchNum = math.random(1,#ImgInfo) 
+
+
+data = pascal_loadAImage({info = ImgInfo[fetchNum]})
+
+local img = data.image[1]
+local annoNum = #data.object[1]
+
+local anno_class = torch.Tensor(5,annoNum)
+
+for iter = 1, annoNum do
+
+local anno = data.object[1][iter].bbox
+local class = class2num(data.object[1][iter].class)
+--print(class,data.object[1][iter].class)
+anno = anno:cdiv(torch.Tensor({img:size(3),img:size(2),img:size(3),img:size(2)}))
+
+anno_class[{{},{iter}}] = torch.cat(anno,torch.Tensor({class}))
+
+end
+
+
+local aug_img,aug_anno,aug_class = augment(img:float()/255,anno_class)
+
+if aug_img == nil then goto re end
+
+
+--print(aug_class)
+
+return aug_img, aug_anno, aug_class
+end
+-------------------------------------------------------------------------
+
+
 
 
 function patchFetch(batch_size,ImgInfo)
@@ -140,19 +162,19 @@ local default_size = 20097
 
 local input_images = torch.Tensor(batch_size,3,500,500)
 local target_anno =  torch.Tensor(batch_size,4,default_size):fill(0) 
-local target_class = torch.Tensor(batch_size,1,default_size)fill(0)--1~21
+local target_class = torch.Tensor(batch_size,1,default_size):fill(0)--1~21
 
 
 for iter =1,batch_size do
-local img, anno_class =  dataload(ImgInfo) -- default by 5
-local augmentedImg,augmentedAnno, target_class[{{iter}}]
-= augment(img,anno_class) -- for a image
+--local img, anno_class =  dataload(ImgInfo) -- default by 5
+local augmentedImg,aug_anno, aug_class= dataload(ImgInfo) -- for a image
 
 input_images[{{iter}}] = augmentedImg
 
 -- default box matching !!
 
-target_anno[{{iter}}] = augmentedAnno
+target_anno[{{iter}}] = aug_anno
+target_class[{{iter}}] = aug_class
 
 end
 

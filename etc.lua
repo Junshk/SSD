@@ -1,21 +1,5 @@
 require 'image'
 
-function pyramid(batch,class)
-local batch = batch or 1
-local pyd ={}
-
-for iter =1, 7 do
-
-local size = math.pow(2,iter-1)
-local d_box = 6 ;
-if iter ==7 then size = size-1; d_box=3 end
-
-pyd[iter] = torch.Tensor(batch,d_box*class,size,size):fill(0)
-
-end        
-
-return pyd
-end
 -------------------------------------------------------
 function class2num(class)
 
@@ -26,39 +10,39 @@ local Class ={'aeroplane','bicycle','bird','boat','bottle','bus','car',
 
 for k,v  in pairs(Class) do
   
-  if v == class then return k end
+  if v == class then 
+          
+       
+          
+          return k end
 
 end        
-
+--print(k,v)
 assert(nil,'wrong class name')
 
 end
 
 -----------------------------------------------------------
+
 function jaccard(anno1,anno2)
--- format : cx cy w h
-local I,U
-if type(anno1) == 'table' then
-I = (math.min(anno1.cx+anno1.w/2,anno2.cx+anno2.w/2)-math.max(anno1.cx-anno1.w/2,anno2.cx-anno2.w/2))
-*(math.min(anno1.cy+anno2.h/2,anno2.cy+anno2.h/2)-math.max(anno1.cy-anno1.h/2,anno2.cy-anno2.h/2))
-U = anno1.w*anno1.h+anno2.w*anno2.h - I
 
-return I/U
-else -- tensor n by 4 
+local xmin, xmax = torch.cmax(anno1[{{1}}],anno2[{{1}}]), torch.cmin(anno1[{{3}}],anno2[{{3}}])
+local ymin, ymax = torch.cmax(anno1[{{2}}], anno2[{{2}}]), torch.cmin(anno1[{{4}}],anno2[{{4}}])
 
+local I = torch.cmax(xmax-xmin,0):cmul( torch.cmax(ymax-ymin,0))
 
-I = (torch.min(anno1[{{},{1}}]+anno1[{{},{3}}]/2,anno2[{{},{1}}]+anno2[{{},{3}}])-torch.max(anno1[{{},{1}}]-anno1[{{},{3}}]/2,anno2[{{},{1}}]-anno2[{{},{3}}])):cmul(torch.min(anno1[{{},{2}}]+anno1[{{},{4}}]/2,anno2[{{},{2}}]+anno2[{{},{4}}])-torch.max(anno1[{{},{2}}]-anno1[{{},{4}}]/2,anno2[{{},{2}}]-anno2[{{},{4}}]))
+local U = (anno1[{{3}}]-anno1[{{1}}]):cmul(anno1[{{4}}]-anno1[{{2}}])  + (anno2[{{3}}]-anno2[{{1}}]):cmul(anno2[{{4}}]-anno2[{{2}}]) - I 
 
-U = torch.cmul(anno1[{{},{3}}],anno2[{{},{4}}])- I
 return I:cdiv(U)
 end
 
-end
+--end
 
 -----------------------------------------------------------
 function jaccard_matrix(tensor,gt) 
+if tensor:dim() ==4 then
 gt:resize(4,1,1,1)
-
+end
 
 local expandGt = gt:expandAs(tensor) -- 4 by ~
 
