@@ -4,7 +4,7 @@ require 'etc'
 require 'image'
 require 'pascal'
 
-local list = ImgInfo('')
+local list = ImgInfo('VOCdevkit/VOC2012_test/')
 local net = torch.load('model/vggSSDnet_intm.t7')
 
 for iter = 1, #list do

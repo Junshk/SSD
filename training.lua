@@ -89,7 +89,8 @@ local _, loss = optim.sgd(feval,params,optimState)
 table.insert(losses,loss[1])
 
 if iteration%opt.plot_iter ==0 then
-gnuplot.plot({'loss',torch.range(1,#losses),torch.Tensor(losses),'-'})
+        local start_num, end_num = math.max(1,iteration-opt.plot_iter*2),iteration
+gnuplot.plot({'loss',torch.range(start_num,end_num),torch.Tensor(losses[{{start_num,end_num}}]),'-'})
 end
 
 if iteration % opt.print_iter ==0 then 

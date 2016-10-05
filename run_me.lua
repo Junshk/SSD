@@ -6,5 +6,5 @@ print('load datas')
 
 
 
-training({plot_iter =1000,end_iter = 60*1000,print_iter=10,save_iter=100})
+training({plot_iter =1000,end_iter = 60*1000,print_iter=20,save_iter=500})
 
