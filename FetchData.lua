@@ -156,9 +156,12 @@ anno = anno:cdiv(torch.Tensor({img:size(3),img:size(2),img:size(3),img:size(2)})
 anno_class[{{},{iter}}] = torch.cat(anno,torch.Tensor({class}))
 
 end
-
-
-local aug_img,aug_anno,aug_class = augment(img:float()/255,anno_class)
+---input normalize
+img[{{1}}] = (img[{{1}}]:float()-115.5431)/255
+img[{{2}}] = (img[{{2}}]:float()-110.0598)/255
+img[{{3}}] = (img[{{3}}]:float()-101.5981)/255
+---
+local aug_img,aug_anno,aug_class = augment(img,anno_class)
 
 if aug_img == nil then goto re end
 

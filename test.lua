@@ -2,8 +2,9 @@ require 'cunn'
 require 'cudnn'
 require 'etc'
 require 'image'
+require 'pascal'
 
-local list = ImgInfo2()
+local list = ImgInfo('')
 local net = torch.load('model/vggSSDnet_intm.t7')
 
 for iter = 1, #list do
