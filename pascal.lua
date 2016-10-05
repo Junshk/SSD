@@ -3,6 +3,29 @@ torch.setdefaulttensortype('torch.FloatTensor')
 
 local xml = require 'xml'
 
+
+
+function ImgInfo(folder)
+
+local Info = {}
+local folder = folder 
+
+if folder == nil then 
+local path = 'VOCdevkit/VOC'
+folder = {path..'2007/',path..'2012/'}
+end
+print(folder)
+for k, folder_path in pairs(folder) do
+  for image_name in paths.iterfiles(folder_path..'/JPEGImages/') do
+    table.insert(Info,{path=folder_path,image_name=image_name})
+  end
+end
+
+
+return Info
+end
+
+
 function pascal_loadAImage(opt)
 local data = {}
 data.folder, data.imgname, data.image, data.object = {},{},{},{}
