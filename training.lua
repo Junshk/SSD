@@ -28,9 +28,9 @@ local batch_size =6
 -------------------------------------------------------------------------------
 
 function training(opt)
-
+local basenet = 'vgg'
 if paths.dirp('model') ==false then os.execute('mkdir model') end
-local net = make_net('vgg')
+local net = make_net(basenet)
 net:training()
 net:cuda()
 cudnn.convert(net,cudnn)
@@ -99,7 +99,7 @@ end
 
 if iteration % opt.save_iter ==0 then 
         net:clearState()
-        torch.save('model/'..basenet..'SSDnet_intm.t7')
+        torch.save('model/'..basenet..'SSDnet_intm.t7',net)
 
 end
 

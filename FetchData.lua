@@ -20,7 +20,7 @@ local random = math.random(1,3)
 local random_aspect = math.pow(2,math.random(-1,1))
 local flip = math.random(1,2)
 local random_size =math.pow(0.1,math.random())
-
+local bg
 --local bg_class = torch.ByteTensor(gt_anno_class:size(2)):fill(0)
 
 -- augment_param
@@ -55,7 +55,7 @@ anno_clone[{2}] = (gt_anno_class[{2}]-sy/h):cmax(0):cmin(crop_h/h)*h/crop_h
 anno_clone[{3}] = (gt_anno_class[{3}]-sx/w):cmin(crop_w/w):cmax(0)*w/crop_w
 anno_clone[{4}] = (gt_anno_class[{4}]-sy/h):cmin(crop_h/h):cmax(0)*h/crop_h
 
-local bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w+1),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h+1),0)+torch.eq(anno_clone[{1}],anno_clone[{3}])+torch.eq(anno_clone[{2}],anno_clone[{4}])
+bg =  torch.gt((cx_ratio*w-sx):cmul(cx_ratio*w-sx-crop_w+1),0)+ torch.gt((cy_ratio*h-sy):cmul(cy_ratio*h-sy-crop_h+1),0)+torch.eq(anno_clone[{1}],anno_clone[{3}])+torch.eq(anno_clone[{2}],anno_clone[{4}])
 
 bg:clamp(0,1)
 -- remove gt out of bd
@@ -102,15 +102,14 @@ anno_clone[{{1,4}}]:clamp(0,1)
 
 if flip==1 then 
 img = image.hflip(img)
-anno_clone[{{1}}] = 1 - anno_clone[{{3}}]
-anno_clone[{{3}}] = 1 - anno_clone[{{1}}]
-anno_clone[{{2}}] = 1 - anno_clone[{{4}}]
-anno_clone[{{4}}] = 1 - anno_clone[{{2}}]
+anno_clone[{{1,4}}] = 1- anno_clone[{{1,4}}]
 
+anno_clone = anno_clone:index(1,torch.LongTensor{3,4,1,2,5})
 end
 -- annotate class num
 
-assert(torch.sum(torch.eq(anno_clone[{1}],anno_clone[{3}])+torch.sum(torch.eq(anno_clone[{2}],anno_clone[{4}])))==0 , 'wrong anno_clone',anno_clone  )
+if torch.sum(torch.eq(anno_clone[{1}],anno_clone[{3}])+torch.sum(torch.eq(anno_clone[{2}],anno_clone[{4}])))~=0 then
+        print( 'wrong anno_clone',anno_clone,bg,gt_anno_class,random,flip  ); assert(nil) end
 local anno_n =anno_clone:size(2)
 
 for iter = 1, anno_n do
@@ -151,11 +150,10 @@ for iter = 1, annoNum do
 local anno = data.object[1][iter].bbox
 local class = class2num(data.object[1][iter].class)
 
-
+if anno[{1}]>=anno[{3}] or anno[{2}]>=anno[{4}] then goto re end
 anno = anno:cdiv(torch.Tensor({img:size(3),img:size(2),img:size(3),img:size(2)}))
 
 anno_class[{{},{iter}}] = torch.cat(anno,torch.Tensor({class}))
-
 
 end
 
