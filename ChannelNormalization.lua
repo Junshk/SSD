@@ -1,9 +1,4 @@
 
-
-
-
-
-
 require 'nn'
 require 'cunn'
 require 'cudnn'
@@ -47,16 +42,16 @@ self._expand:expandAs(self.norm,self._output)
 
 if torch.type(input) == 'torch.CudaTensor' then
 self._repeat:resizeAs(self._expand):copy(self._expand)
-self._output:cdiv(self._repeat)
+self._output:cdiv(input,self._repeat)
         else
-self._output:cdiv(self._expand)
+self._output:cdiv(input,self._expand)
 end
 --self.stdnorm = torch.Tensor(input:size(featureDim)):fill(1)
 --self.stdnorm = self.stdnorm:norm(self.p)+self.eps
 
-self._output = self._output-- * self.stdnorm
+--self._output = self._output-- * self.stdnorm
 
-self.output:view(self._output, input_size)
+self.output:view(self._output,input_size)
 
 return self.output
 end
