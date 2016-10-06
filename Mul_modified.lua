@@ -38,7 +38,8 @@ function Mul_modified:updateOutput(input)
 --  self.expand = self.expand or input.new()
   
 --  self.expand:copy(self.weight:expandAs(input))
-  self.output:cmul(self.weight:expandAs(input))--self.expand)
+--print(self.weight:size(),input:size())
+self.output:cmul(self.weight:expandAs(input))--self.expand)
   return self.output
 end
 
@@ -57,8 +58,8 @@ end
 function Mul_modified:accGradParameters(input, gradOutput, scale)--
   scale = scale or 1
     if input:dim() == 4 then self.gradWeight =self.gradWeight:view(1,self.ch,1,1) elseif input:dim() == 3 then self.gradWeight = self.gradWeight:view(self.ch,1,1) end
-print(self.gradWeight:size(),input:size(), gradOutput:size())
- self.gradWeight = self.gradWeight +scale*input:cmul(gradOutput):mean(input:dim()):mean(input:dim()-1)
+--print(self.gradWeight:size(),input:size(), gradOutput:size())
+if input:dim() ==4 then  self.gradWeight = self.gradWeight +scale*input:cmul(gradOutput):mean(input:dim()):mean(input:dim()-1):mean(1) end
   
   
 end

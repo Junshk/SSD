@@ -173,8 +173,8 @@ seq1:add(cudnn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weigh
 seq1:add(concat2)
 
 concat1:add(seq1)
-local ss = nn.Sequential():add(nn.ChannelNormalization(2))
-ss:add(nn.Mul_modified(1024,20))--nn.Mul():init('weight',nninit.constant,20))
+local ss = nn.Sequential()--:add(nn.ChannelNormalization(2))
+ss:add(nn.Mul_modified(512,20))--nn.Mul():init('weight',nninit.constant,20))
 concat1:add(ss)--cudnn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1))
 -- 4_3
 
