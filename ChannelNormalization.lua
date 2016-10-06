@@ -35,7 +35,7 @@ self._output:resizeAs(input)
 
 
 self.norm = torch.norm(input,self.p,featureDim)
-self.normp = self.norm:pow(self.p)
+--self.normp:copy( self.norm):pow(self.p)
 self.norm:add(self.eps)
 
 self._expand:expandAs(self.norm,self._output)
@@ -46,11 +46,6 @@ self._output:cdiv(input,self._repeat)
         else
 self._output:cdiv(input,self._expand)
 end
---self.stdnorm = torch.Tensor(input:size(featureDim)):fill(1)
---self.stdnorm = self.stdnorm:norm(self.p)+self.eps
-
---self._output = self._output-- * self.stdnorm
-
 self.output:view(self._output,input_size)
 
 return self.output
@@ -58,6 +53,7 @@ end
 
 
 function ChannelNormalization:updateGradInput(input, gradOutput)
+
 assert(input:dim()>=3 , 'only data including feature dim supported')
 assert(gradOutput:dim() >=3 , 'only data including feature dimi supported')
 
@@ -77,23 +73,30 @@ self._gradInput = self._gradInput  or input.new()
 self.buffer = self.buffer or input.new() -- differential upper
 self.buffer2 = self.buffer2 or input.new() -- differential lower
 
-if self.p == math.huge then
+if self.p ~= 2 then
   
   assert(nil,'not yet provided')
-else
-  self.buffer = (self.norm:expandAs(input))
+elseif self.p ==2 then
+self.buffer:add(self.norm:expandAs(input),1)
+    self.buffer:cinv()
+    self.buffer2:pow(self.norm:expandAs(input),-3/2)
+self.buffer2:cmul(input/2)
+    else
+--[[
+    self.buffer = (self.norm:expandAs(input))
   self.buffer:cinv()
   self.buffer2 = input:clone()
   self.buffer2:pow(self.p)
   self.buffer2:cmul(self.normp:expandAs(input):pow((1-self.p)/self.p))
   self.buffer2:cdiv(self.buffer)
   self.buffer2:cdiv(self.buffer)
+]]--
 end
 
-self._gradInput = self.buffer+ self.buffer2
+self._gradInput = self.buffer -  self.buffer2
 --self._gradInput = self._gradInput * self.stdnorm
+self._gradInput:cmul(gradOutput)
 self.gradInput:view(self._gradInput, input_size)
-self.gradInput:cmul(gradOutput)
 
 return self.gradInput
 
