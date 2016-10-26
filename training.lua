@@ -5,15 +5,8 @@ require 'gnuplot'
 require 'FetchData'
 require 'MultiBoxLoss'
 require 'test'
+print('training')
 cutorch.setDevice(1)
-
---Classes={'aeroplane','bicycle','bird','boat','bottle','bus','car',
-           'cat','chair','cow','diningtable','dog','horse','motorbike',
-           'person','pottedplant','sheep','sofa','train','tvmonitor'}
-
---local confusion = optim.ConfusionMatrix(Classes)
-
-
 
 --require 'prior_box'
 --SGD
@@ -25,7 +18,7 @@ weightDecay = 0.0005
 
 }
 
-local batch_size = 32 
+local batch_size = 15 
 -------------------------------------------------------------------------------
 
 function training(opt)
@@ -33,7 +26,7 @@ function training(opt)
 local basenet = 'vgg'
 if paths.dirp('model') ==false then os.execute('mkdir model') end
 local net = make_net(basenet)
-local netname = basenet .. '_b'.. batchsize
+local netname = basenet .. '_b'.. batch_size
 net:training()
 net:cuda()
 cudnn.convert(net,cudnn)
@@ -60,7 +53,7 @@ grads:zero()
 local detc = torch.sum(torch.gt(target[1],21))+ torch.sum(torch.lt(target[1],1))
 assert(detc==0 , 'wrong class label')
 
-local output = net:forward(input:cuda())
+local output = net:forward(input:cuda()):float()
 input:float()
 
 
@@ -79,7 +72,7 @@ end -- end local feval
 -------------------------------------------
 
 local losses = {}
-
+local val_losses = {}
 for iteration =1,opt.end_iter do
 
 
@@ -89,7 +82,10 @@ if iteration == 40*1000 then optimState.learningRate = 1e-4 end
 local _, loss = optim.sgd(feval,params,optimState)
 
 table.insert(losses,loss[1])
-
+if opt.valid ==true and iteration%opt.test_iter ==0 then
+         validation(net,'valid_loss_'..iteration)
+        
+    end
   if iteration%opt.plot_iter ==0 then
         local start_num, end_num = math.max(1,iteration-opt.plot_iter*10),iteration
         gnuplot.plot({'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
@@ -117,5 +113,5 @@ end
   torch.save('model/'..netname..'.nnet',net)
   torch.save('loss/lossof'..netname..'.t7',losses)
 
-
+print('training end')
 end

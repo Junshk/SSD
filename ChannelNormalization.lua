@@ -28,7 +28,7 @@ end
 
 self._output = self._output or input.new()
 self.norm = self.norm or input.new()
-self.normp = self.normp or input.new()
+--self.normp = self.normp or input.new()
 self._repeat = self._repeat or input.new()
 self._expand = self._expand or input.new()
 self._output:resizeAs(input)
@@ -123,11 +123,11 @@ end
 function ChannelNormalization:clearState()
 nn.utils.clear(self, 
 {'_output',
-'_indices',
+--'_indices',
 '_gradInput',
 'buffer',
 'norm',
-'normp',
+--'normp',
 'buffer2', '_expand', '_repeat'
 })
 return parent.clearState(self)

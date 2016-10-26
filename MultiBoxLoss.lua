@@ -50,7 +50,7 @@ local input1 , input2 = bat2wo(input[{{},{1,21}}]),bat2wo(input[{{},{22,25}}])
 local target1, target2 =bat2wo(target[1]), bat2wo(target[2])
 negative_mask = bat2wo(negative_mask)
 
-local softmax_result = torch.exp(nn.LogSoftMax():cuda():forward(input1):float())[{{},{21}}]
+local softmax_result = torch.exp(nn.LogSoftMax():forward(input1):float())[{{},{21}}]
 
 --print(discard_negative_num)
 

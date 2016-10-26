@@ -5,14 +5,15 @@ require 'etc'
 
 
 function prior_box(img_size,layer_size,min_max,aspect_ratios)
+
 if type(img_size) =='number' then img_size ={w=img_size,h=img_size}end
 if type(layer_size) =='number' then layer_size ={w=layer_size,h=layer_size}end
 
 
 local min_size = min_max.min
 local max_size = -1
---print('mm',min_max)
---print(min_size)
+
+
 if min_max.max ~= nil then max_size = min_max.max end ; 
 local mulmm = max_size*min_size
 
@@ -35,12 +36,12 @@ local dim = layer_size.h * layer_size.w * num_priors *4 -- 4:xmin ymin xmax ymax
 
 local w_matrix = torch.range(1,layer_size.w) ; w_matrix=w_matrix:repeatTensor(layer_size.h,1)
 local h_matrix = torch.range(1,layer_size.h) ; h_matrix=h_matrix:repeatTensor(layer_size.w,1):t()
---print(w_matrix,h_matrix)
---w_matrix= w_matrix:reshape(layer_size.h*layer_size.w)
---h_matrix= h_matrix:reshape(layer_size.h*layer_size.h)
+
+
+
 w_matrix = w_matrix:repeatTensor(num_priors,1,1)
 h_matrix = h_matrix:repeatTensor(num_priors,1,1)
---print(w_matrix)
+
 local box_width = {}
 local box_height = {}
 
@@ -55,13 +56,13 @@ end
 
 box_width = torch.Tensor(box_width)
 box_height = torch.Tensor(box_height)
---print(box_height:size())
+
 box_width = box_width:repeatTensor(layer_size.h,layer_size.w,1)
 box_height = box_height:repeatTensor(layer_size.h,layer_size.w,1)
---print(box_width:size())
 
---local center_x = torch.Tensor(w_matrix:size())
---local center_y = torch.Tensor(h_matrix:size())
+
+
+
 
 local center_x = (w_matrix+0.5)*step_x; local center_y = (h_matrix+0.5)*step_y;
 --print(center_x:size(),box_width:size(),box_height:size(),w_matrix:size()) 
@@ -139,3 +140,5 @@ whcxy[{{3}}] = (xy[{{3}}]+xy[{{1}}])/2
 whcxy[{{4}}] = (xy[{{4}}]+xy[{{2}}])/2
 return whcxy
 end
+
+real_box_ratio = whcxy()

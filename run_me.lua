@@ -1,10 +1,21 @@
+
+dofile('dataload.lua')
+
+
 require 'pascal'
 require 'training'
 
-dofile('dataload.lua')
 print('load datas')
 
+local option =
+{plot_iter =500,end_iter = 60*1000,print_iter=20,save_iter=500,
+test_iter = 100,
+valid =true
+}
+training(option)
 
 
-training({plot_iter =1000,end_iter = 60*1000,print_iter=20,save_iter=500})
 
+local result = test()
+
+os.excute()

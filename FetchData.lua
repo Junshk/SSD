@@ -173,7 +173,7 @@ end
 -------------------------------------------------------------------------
 
 
-local prior_whcxy =whcxy()
+local prior_whcxy = real_box_ratio
 
 function patchFetch(batch_size,ImgInfo)
 local default_size = 20097
