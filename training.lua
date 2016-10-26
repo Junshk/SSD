@@ -1,16 +1,17 @@
 require 'optim'
 require 'make_net'
---require 'loss'
+
 require 'gnuplot'
 require 'FetchData'
 require 'MultiBoxLoss'
+require 'test'
+cutorch.setDevice(1)
 
-
-Classes={'aeroplane','bicycle','bird','boat','bottle','bus','car',
+--Classes={'aeroplane','bicycle','bird','boat','bottle','bus','car',
            'cat','chair','cow','diningtable','dog','horse','motorbike',
            'person','pottedplant','sheep','sofa','train','tvmonitor'}
 
-local confusion = optim.ConfusionMatrix(Classes)
+--local confusion = optim.ConfusionMatrix(Classes)
 
 
 
@@ -24,18 +25,19 @@ weightDecay = 0.0005
 
 }
 
-local batch_size =7 
+local batch_size = 32 
 -------------------------------------------------------------------------------
 
 function training(opt)
+
 local basenet = 'vgg'
 if paths.dirp('model') ==false then os.execute('mkdir model') end
 local net = make_net(basenet)
+local netname = basenet .. '_b'.. batchsize
 net:training()
 net:cuda()
 cudnn.convert(net,cudnn)
---local criterion = nn.SSDloss(default)
---criterion:cuda()
+
 
 
 local img_Info_table = ImgInfo()
@@ -50,9 +52,9 @@ if x ~= params then
         end
 
 
---local time_0 = os.time()
+
 local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
---local time_data = os.time();print('data time =',time_data-time_0 )
+
 grads:zero()
 
 local detc = torch.sum(torch.gt(target[1],21))+ torch.sum(torch.lt(target[1],1))
@@ -61,20 +63,20 @@ assert(detc==0 , 'wrong class label')
 local output = net:forward(input:cuda())
 input:float()
 
---print('time f',os.time()-time_data)
+
 
 -----------------------------------
---print('forward')
+
 local err, df_dx = MultiBoxLoss(output,target)
 ------------------------------------
---print('time l',os.time()-time_data)
+
 net:backward(input:cuda(),df_dx:cuda())
---print('backward')
---print('time b',os.time()-time_data)
+
+
 collectgarbage();
 return err,grads
 end -- end local feval
-
+-------------------------------------------
 
 local losses = {}
 
@@ -88,31 +90,32 @@ local _, loss = optim.sgd(feval,params,optimState)
 
 table.insert(losses,loss[1])
 
-if iteration%opt.plot_iter ==0 then
+  if iteration%opt.plot_iter ==0 then
         local start_num, end_num = math.max(1,iteration-opt.plot_iter*10),iteration
-gnuplot.plot({'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
-end
+        gnuplot.plot({'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
+  end
 
-if iteration % opt.print_iter ==0 then 
+  if iteration % opt.print_iter ==0 then 
         print('iter',iteration,'loss ',loss[1])
-end
+  end
 
 
-if iteration % opt.save_iter ==0 then 
+  if iteration % opt.save_iter ==0 then 
         net:clearState()
-        torch.save('model/'..basenet..'SSDnet_intm.t7',net)
-torch.save('lossofssd.t7',losses)
-end
+        torch.save('model/'..netname..'_intm.net',net)
+        torch.save('loss/lossof'..netname..'_intm.t7',losses)
+  end
 
 end
 
 
 
 
-net:clearState()
+  net:clearState()
 
 
-torch.save('model/'..basenet..'SSDnet.t7',net)
+  torch.save('model/'..netname..'.nnet',net)
+  torch.save('loss/lossof'..netname..'.t7',losses)
 
 
 end

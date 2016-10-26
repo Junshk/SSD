@@ -5,15 +5,21 @@ require 'image'
 require 'pascal'
 
 local result_txt = 'result.txt' 
-local list = ImgInfo('VOCdevkit/VOC2012_test/')
-local net = torch.load('model/vggSSDnet_intm.t7')
-local result_img_folder = 'result_img/'
+local test_list = ImgInfo('VOCdevkit/VOC2012_test/')
+
+--local result_img_folder = 'result_img/'
 --------------------------------------------
-function write_box()
-end
-function drawing_box()
-end
+
+
+
+
 ---------------------------------------------
+
+function test(net,list)
+
+local list = list or test_list
+
+
 for iter = 1, #list do
 
 local imagename = list[iter].image_name
@@ -30,13 +36,31 @@ local result_vector = net:forward(img_scaled:cuda())
 local result_box = nms(result_vector,0.5)
 
 --reconstruction
-result_box = reconstruction(result_box,img_size())
 
-local result_img = drawing_box(result_box,img)
-image.save(result_img_folder..imagename..'.jpg',result_img)
 
-write_box(result_box,result_txt)
+
+
+
+
+
+end
 
 end
 
 
+
+function validation(net,savename)
+
+local valid_txt = 'VOCdevkit/VOC2012/ImageSets/Main/val.txt'
+local valid_list = {};
+
+-- txt read
+
+
+local reslut = test(net,valid_list)
+
+
+torch.save(savename,result)
+
+
+end
