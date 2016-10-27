@@ -3,7 +3,7 @@ require 'cudnn'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 local softmax = nn.LogSoftMax():cuda()
-softmax:evalute()
+softmax:evaluate()
 ----------------------------------------
 function bat2wo(input)
 
