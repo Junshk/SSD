@@ -69,7 +69,8 @@ function test(net,list)
     end
     
     local result_per_image = {detection = detection_result, image_name = list[iter].image_name}
-    table.insert(result, result_per_image)
+--  print(result_per_image)
+  table.insert(result, result_per_image)
   end
 
 
@@ -91,7 +92,7 @@ local f = assert(io.open(valid_txt,'r'))
 --local t = f:read()
 io.input(f)
 
-while  true do
+for i =1 ,1 do--while  true do
 local img ={}
 local line = io.read()
 if line ==nil then break end
@@ -103,7 +104,7 @@ end
 io.close(f)
 
 local result = test(net,valid_list)
-
+print(savename,result)
 matio.save(savename..'.mat',result)
 
 end

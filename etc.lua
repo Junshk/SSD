@@ -128,14 +128,17 @@ function nms(boxes, overlap, scores) -- adjusted
 
   
   local area = torch.cmul(w:cuda():expand(box_num,box_num),h:cuda():expand(box_num,box_num))
-  local IOU = torch.cdiv(inter,area+area:t()-inter)
+  local IOU = torch.cdiv(inter,area+area:t()-inter):float()
   
   
   
-  
-  local v, I = scores:cuda():sort(1)
-  I=I:float()
-print(I)  
+  local v, Order = scores:cuda():sort(1)
+  Order=Order:long()
+  v=v:float()
+
+
+
+
 
   pick:resize(box_num):zero()
   local count = 1
@@ -148,9 +151,10 @@ print(I)
   local ww = boxes.new()
   local hh = boxes.new()
 ]]--
-  while I:numel() > 0 do 
-    local last = I:size(1)
-    local i = I[last]
+
+ while Order:numel() > 0 do 
+    local last = Order:size(1)
+    local i = Order[last]
     
     pick[count] = i
     count = count + 1
@@ -159,7 +163,8 @@ print(I)
       break
     end
     
-    I = I[{{1, last-1}}] -- remove picked element from view
+
+    Order = Order[{{1, last-1}}] -- remove picked element from view
    --[[ 
     -- load values 
     xx1:index(x, 1, I)
@@ -188,9 +193,13 @@ print(I)
 --    torch.cdiv(IoU, inter, xx1 + area[i] - inter) -- store result in iou
     ]]--
 
-    local partial_IoU = IOU[i]
-    I = I[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap 
-  end
+    local partial_IoU = IOU[i]:squeeze():index(1,Order)
+
+    Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap 
+--  Order = Order:cmul(partial_IoU)
+
+--if torch.gt(Order,0):numel() ==0 then break;end
+end
 
   -- reduce size to actual count
   pick = pick[{{1, count-1}}]
