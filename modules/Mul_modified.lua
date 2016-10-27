@@ -64,3 +64,12 @@ if input:dim() ==4 then  self.gradWeight = self.gradWeight +scale*input:cmul(gra
   
 end
 
+function Mul_modified:clearState()
+nn.utils.clear(self,{
+        'weight',
+        'gradWeight'
+        
+        })
+
+
+end

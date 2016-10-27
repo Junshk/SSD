@@ -28,14 +28,14 @@ end
 
 self._output = self._output or input.new()
 self.norm = self.norm or input.new()
---self.normp = self.normp or input.new()
+
 self._repeat = self._repeat or input.new()
 self._expand = self._expand or input.new()
 self._output:resizeAs(input)
 
 
 self.norm = torch.norm(input,self.p,featureDim)
---self.normp:copy( self.norm):pow(self.p)
+
 self.norm:add(self.eps)
 
 self._expand:expandAs(self.norm,self._output)
@@ -82,15 +82,6 @@ self.buffer:add(self.norm:expandAs(input),1)
     self.buffer2:pow(self.norm:expandAs(input),-3/2)
 self.buffer2:cmul(input/2)
     else
---[[
-    self.buffer = (self.norm:expandAs(input))
-  self.buffer:cinv()
-  self.buffer2 = input:clone()
-  self.buffer2:pow(self.p)
-  self.buffer2:cmul(self.normp:expandAs(input):pow((1-self.p)/self.p))
-  self.buffer2:cdiv(self.buffer)
-  self.buffer2:cdiv(self.buffer)
-]]--
 end
 
 self._gradInput = self.buffer -  self.buffer2

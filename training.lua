@@ -18,23 +18,22 @@ weightDecay = 0.0005
 
 }
 
-local batch_size = 15 
+--local batch_size = 15 
 -------------------------------------------------------------------------------
 
 function training(opt)
+local batch_size = opt.batch_size
 
 local basenet = 'vgg'
 if paths.dirp('model') ==false then os.execute('mkdir model') end
 local net = make_net(basenet)
 local netname = basenet .. '_b'.. batch_size
+
 net:training()
 net:cuda()
 cudnn.convert(net,cudnn)
 
-
-
 local img_Info_table = ImgInfo()
-
 
 local params, grads = net:getParameters()
 
@@ -56,15 +55,13 @@ assert(detc==0 , 'wrong class label')
 local output = net:forward(input:cuda()):float()
 input:float()
 
-
-
 -----------------------------------
 
 local err, df_dx = MultiBoxLoss(output,target)
 ------------------------------------
-
+target = nil ;
 net:backward(input:cuda(),df_dx:cuda())
-
+input = nil; df_dx = nil;
 
 collectgarbage();
 return err,grads

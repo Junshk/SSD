@@ -1,27 +1,26 @@
 require 'image'
-
--------------------------------------------------------
-function class2num(class)
-
+torch.setdefaulttensortype('torch.FloatTensor')
 local Class ={'aeroplane','bicycle','bird','boat','bottle','bus','car',
            'cat','chair','cow','diningtable','dog','horse','motorbike',
            'person','pottedplant','sheep','sofa','train','tvmonitor'}
 
 
+-------------------------------------------------------
+function class2num(class)
+
+
 for k,v  in pairs(Class) do
   
   if v == class then 
-          
-       
-          
+                   
           return k end
-
 end        
---print(k,v)
+
 assert(nil,'wrong class name')
 
 end
 
+function num2class(num ) return Class[num] end
 -----------------------------------------------------------
 
 function jaccard(anno1,anno2)
@@ -70,35 +69,6 @@ end
 
 
 
-
---[[
-function augmentation(img,anno) 
-local random = math.random(1,3)
-
-
-
-if random ==1 then
---original
-
-elseif random ==2 then
---jaccard 0.1 0.3 0.5 0.7 0.9
-
-
-elseif random==3 then
--- random
-
-end
-
-
--- if hflip
-if math.random(1,2) ==2 then
-img = image.hflip(img)
-end
-
-return img
-end
-]]--
-
 -- Non-maximum suppression (NMS)
 --
 -- Greedily skip boxes that are significantly overlapping a previously 
@@ -122,29 +92,54 @@ end
 -- Based on matlab code by Pedro Felzenszwalb https://github.com/rbgirshick/voc-dpm/blob/master/test/nms.m
 -- Minor changes by Andreas Köpf, 2015-09-17 
 function nms(boxes, overlap, scores) -- adjusted
-   local pick = torch.LongTensor()
+
+  local score_upper = torch.gt(scores,0.01)
+--  print(boxes:size(),scores:size())
+  boxes = boxes[score_upper:view(-1,1):expandAs(boxes)]:view(-1,4)
+  scores = scores[score_upper]
+  
+  local pick = torch.LongTensor()
 
   if boxes:numel() == 0 then
     return pick
   end
 
-  local w = boxes[{{}, 1}]
-  local h = boxes[{{}, 2}]
-  local x = boxes[{{}, 3}]
-  local y = boxes[{{}, 4}]
-    
---  local area = torch.cmul(x2 - x1 + 1, y2 - y1 + 1)
-  
-  local area = torch.cmul(boxes[{{},1}],boxes[{{},2}])
-  
-  --  scores = boxes[{{}, scores}]
-  
-  
-  local v, I = scores:sort(1)
+  local box_num = boxes:size(1)
+  local all_pairs_iou = torch.Tensor(box_num,box_num)
 
-  pick:resize(area:size()):zero()
-  local count = 1
+
+
+  local w = boxes[{{}, {1}}]
+  local h = boxes[{{}, {2}}]
+  local x = boxes[{{}, {3}}]
+  local y = boxes[{{}, {4}}]
+
+  local xmax = (x+w):expand(box_num,box_num):cuda()
+  xmax:cmin(xmax:t()):cmax(0):cmin(1)
+  local xmin = x:expand(box_num,box_num):cuda()
+  xmin:cmax(xmin:t()):cmax(0):cmin(1)
+  local ymax = (y+h):expand(box_num,box_num):cuda()
+  ymax:cmin(ymax:t()):cmax(0):cmin(1)
+  local ymin = y:expand(box_num,box_num):cuda()
+  ymin:cmax(ymin:t()):cmax(0):cmin(1)
+
+  local inter = torch.cmul(ymax-ymin,xmax-xmin)
+  ymax=nil;ymin=nil;xmax=nil;xmin=nil; collectgarbage();
+
   
+  local area = torch.cmul(w:cuda():expand(box_num,box_num),h:cuda():expand(box_num,box_num))
+  local IOU = torch.cdiv(inter,area+area:t()-inter)
+  
+  
+  
+  
+  local v, I = scores:cuda():sort(1)
+  I=I:float()
+print(I)  
+
+  pick:resize(box_num):zero()
+  local count = 1
+  --[[
   local xx1 = boxes.new()
   local yy1 = boxes.new()
   local xx2 = boxes.new()
@@ -152,7 +147,7 @@ function nms(boxes, overlap, scores) -- adjusted
 
   local ww = boxes.new()
   local hh = boxes.new()
-
+]]--
   while I:numel() > 0 do 
     local last = I:size(1)
     local i = I[last]
@@ -165,7 +160,7 @@ function nms(boxes, overlap, scores) -- adjusted
     end
     
     I = I[{{1, last-1}}] -- remove picked element from view
-    
+   --[[ 
     -- load values 
     xx1:index(x, 1, I)
     yy1:index(y, 1, I)
@@ -191,8 +186,10 @@ function nms(boxes, overlap, scores) -- adjusted
     -- IoU := i / (area(a) + area(b) - i)
 --    xx1:index(area, 1, I) -- load remaining areas into xx1
 --    torch.cdiv(IoU, inter, xx1 + area[i] - inter) -- store result in iou
-    
-    I = I[IoU:le(overlap)] -- keep only elements with a IoU < overlap 
+    ]]--
+
+    local partial_IoU = IOU[i]
+    I = I[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap 
   end
 
   -- reduce size to actual count
