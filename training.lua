@@ -73,7 +73,7 @@ local val_losses = {}
 for iteration =1,opt.end_iter do
 
 
-if iteration == 40*1000 then optimState.learningRate = 1e-4 end
+if iteration == 60*1000 then optimState.learningRate = 1e-4 end
 
 
 local _, loss = optim.sgd(feval,params,optimState)

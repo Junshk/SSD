@@ -2,11 +2,12 @@ require 'nn'
 require 'cudnn'
 require 'cunn'
 require 'loadcaffe'
-require 'ChannelNormalization'
-require 'Mul_modified'
+require 'modules/ChannelNormalization'
+require 'modules/Mul_modified'
+
 local nninit = require 'nninit'
 local net = nn.Sequential()
-cutorch.setDevice(2)
+
 -------------------------------------------------------------------------------
 local function base_load(base_name)
 
@@ -77,7 +78,7 @@ parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1):init('weigh
 end
 parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1):init('weight',nninit.xavier))
 
-  reshape:add(nn.Reshape(classes,6*1))
+reshape:add(nn.Reshape(classes,6*1))
 reshape:add(nn.Reshape(classes,6*2*2))
 reshape:add(nn.Reshape(classes,6*4*4))
 reshape:add(nn.Reshape(classes,6*8*8))
@@ -100,7 +101,7 @@ function make_net(base_name)
 
 
 local base = base_load(base_name)
-
+base:float() ; cudnn.convert(base,nn)
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
 local perm_order = torch.randperm(4096)
@@ -115,12 +116,12 @@ weight_of_fc6 = weight_of_fc6:index(3,sample)
 weight_of_fc6 = weight_of_fc6:transpose(3,4)
 weight_of_fc6 = weight_of_fc6:transpose(2,3)
 weight_of_fc6 = weight_of_fc6:transpose(1,2)
---print()
+
 local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1)
 weight_of_fc7 = weight_of_fc7:index(1,perm_order:long())
 weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
 weight_of_fc7 = weight_of_fc7:transpose(1,2)
---print(weight_of_fc7:size())
+
 -----------------------------
 
 if base_name == 'vgg' then
@@ -137,26 +138,34 @@ concat6:add(cudnn.SpatialAveragePooling(2,2))
 concat6:add(nn.Identity())
 
 seq5:add(cudnn.SpatialConvolution(256,128,1,1):init('weight',nninit.xavier))
+seq5:add(cudnn.ReLU(true))
 seq5:add(cudnn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq5:add(cudnn.ReLU(true))
 seq5:add(concat6)
 concat5:add(seq5)
 concat5:add(nn.Identity())
 
 
 seq4:add(cudnn.SpatialConvolution(256,128,1,1):init('weight',nninit.xavier))
+seq4:add(cudnn.ReLU(true))
 seq4:add(cudnn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq4:add(cudnn.ReLU(true))
 seq4:add(concat5)
 concat4:add(seq4)
 concat4:add(nn.Identity())
 
 seq3:add(cudnn.SpatialConvolution(512,128,1,1):init('weight',nninit.xavier))
+seq3:add(cudnn.ReLU(true))
 seq3:add(cudnn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq3:add(cudnn.ReLU(true))
 seq3:add(concat4)
 concat3:add(seq3)
 concat3:add(nn.Identity())
 
 seq2:add(cudnn.SpatialConvolution(1024,256,1,1):init('weight',nninit.xavier))
+seq2:add(cudnn.ReLU(true))
 seq2:add(cudnn.SpatialConvolution(256,512,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq2:add(cudnn.ReLU(true))
 seq2:add(concat3)
 concat2:add(seq2)
 concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier
@@ -209,9 +218,10 @@ print('residual')
 else assert(false,'wrong base network name')
 end
 
-
+base =nil; collectgarbage();
 net:cuda()
 
 return net
 
 end
+cudnn.fastest = true
