@@ -7,11 +7,11 @@ require 'prior_box'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
-local matio = require 'matio'
+--local matio = require 'matio'
 local test_txt
 local test_list = {}
 local softmax = cudnn.LogSoftMax():cuda()
-
+softmax:evaluate()
 
 --------------------------------------------
 ---------------------------------------------
@@ -28,7 +28,7 @@ net:evaluate()
   
   local result_vector = torch.Tensor(#list,25,20097)
 
-  local batch = 14
+  local batch = 13
   local iter = 1
 
 -- forward
@@ -46,8 +46,9 @@ net:evaluate()
     input_tensor[{{iter-start_iter+1}}] = image.scale(img,500,500)
   
     end
-  
-  result_vector[{{start_iter,end_iter}}] = net:forward(input_tensor:cuda()):float():squeeze()
+ 
+  local n =net:forward(input_tensor:cuda())
+  result_vector[{{start_iter,end_iter}}] = n:float():squeeze()
 
   input_tensor =nil; collectgarbage();
   
@@ -105,9 +106,6 @@ net:evaluate()
   end
 
 local i4 =os.time()
-  net:training()
-  net:cuda()
-
   if folder ==nil then
   return result
   else -- write in filename txt 
@@ -132,6 +130,9 @@ local i4 =os.time()
   end
 
 print('test time : ',i2-i1,i3-i2,i4-i3)
+  net:training()
+  net:cuda()
+
 
 end
 
@@ -147,7 +148,7 @@ local valid_list = {}
 local f = assert(io.open(valid_txt,'r'))
 
 io.input(f)
---for i =1 ,50 do--
+--for i =1 ,5 do--
 while  true do
 local img ={}
 local line = io.read()

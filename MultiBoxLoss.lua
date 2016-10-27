@@ -2,7 +2,8 @@ require 'cunn'
 require 'cudnn'
 
 torch.setdefaulttensortype('torch.FloatTensor')
-
+local softmax = nn.LogSoftMax():cuda()
+softmax:evalute()
 ----------------------------------------
 function bat2wo(input)
 
@@ -42,7 +43,8 @@ function MultiBoxLoss(input,target)  -- target1 : class 1 by pyramid, bd 4 by py
   local target1, target2 =bat2wo(target[1]), bat2wo(target[2])
   negative_mask = bat2wo(negative_mask)
 
-  local softmax_result = torch.exp(nn.LogSoftMax():forward(input1):float())[{{},{21}}]
+  local softmax_result = torch.exp(softmax:forward(input1:cuda()):float())[{{},{21}}]
+  input1:float()
 
   if discard_negative_num~=0 then
     local score, k = torch.topk(softmax_result,discard_negative_num,1,true,true)
@@ -73,10 +75,12 @@ function MultiBoxLoss(input,target)  -- target1 : class 1 by pyramid, bd 4 by py
   dl_dx_loc = alpha * L1loss:backward((input2):cuda(),(target2):cuda()):float()/4
 
   L1loss = nil;
-  input2:float() ; target2:float()
+  input2= nil ;
+  target2:float();
 
   dl_dx_conf = CrossEntropy:backward((input1):cuda(),target1:cuda()):float()
-  input1:float(); target1:float()
+  input1 =nil;
+  target1:float();
   CrossEntropy = nil
 
 --discard conf

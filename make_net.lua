@@ -5,6 +5,10 @@ require 'loadcaffe'
 require 'modules/ChannelNormalization'
 require 'modules/Mul_modified'
 
+
+cudnn.fastest = true
+cudnn.benchmark = true
+
 local nninit = require 'nninit'
 local net = nn.Sequential()
 

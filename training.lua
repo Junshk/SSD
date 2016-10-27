@@ -23,15 +23,15 @@ weightDecay = 0.0005
 
 function training(opt)
 local batch_size = opt.batch_size
-
+local multi_batch = 1
 local basenet = 'vgg'
 if paths.dirp('model') ==false then os.execute('mkdir model') end
 local net = make_net(basenet)
 local netname = basenet .. '_b'.. batch_size
-
+print(net)
 net:training()
 net:cuda()
-cudnn.convert(net,cudnn)
+--cudnn.convert(net,cudnn)
 
 local img_Info_table = ImgInfo()
 
@@ -48,20 +48,26 @@ if x ~= params then
 local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
 
 grads:zero()
+--net:clearState()
+--local detc = torch.sum(torch.gt(target[1],21))+ torch.sum(torch.lt(target[1],1))
+--assert(detc==0 , 'wrong class label')
+print(cutorch.getMemoryUsage(1))
 
-local detc = torch.sum(torch.gt(target[1],21))+ torch.sum(torch.lt(target[1],1))
-assert(detc==0 , 'wrong class label')
-
-local output = net:forward(input:cuda()):float()
+local output = net:forward(input:cuda())
 input:float()
-
+print(cutorch.getMemoryUsage(1))
 -----------------------------------
-
-local err, df_dx = MultiBoxLoss(output,target)
+--net:float()
+local err, df_dx = MultiBoxLoss(output:float(),target)
 ------------------------------------
-target = nil ;
+--net:cuda()
+print(cutorch.getMemoryUsage(1))
+
 net:backward(input:cuda(),df_dx:cuda())
-input = nil; df_dx = nil;
+print(cutorch.getMemoryUsage(1))
+
+--input = nil; df_dx = nil;
+--target =nil;
 
 collectgarbage();
 return err,grads
