@@ -5,7 +5,6 @@ require 'gnuplot'
 require 'FetchData'
 require 'MultiBoxLoss'
 require 'test'
-print('training')
 cutorch.setDevice(1)
 
 --require 'prior_box'
@@ -23,15 +22,34 @@ weightDecay = 0.0005
 
 function training(opt)
 local batch_size = opt.batch_size
-local multi_batch = 1
-local basenet = 'vgg'
+local multi_batch = opt.multi_batch 
+--local basenet = 'vgg'
 if paths.dirp('model') ==false then os.execute('mkdir model') end
-local net = make_net(basenet)
-local netname = basenet .. '_b'.. batch_size
-print(net)
+
+local net 
+local netname = opt.netname--basenet .. '_b'.. batch_size
+
+--cudnn.convert(net,cudnn)
+local losses = {}
+local val_losses = {}
+local start_iter = 1
+
+if paths.filep('model/'..netname..'_intm.net') == false then 
+opt.cont =false end
+
+  if opt.cont == true then
+    losses = torch.load('model/lossof'..netname..'_intm.t7')
+    start_iter = #losses
+    net = torch.load('model/'..netname..'_intm.net')  
+    privOpt = torch.load('model/optof'..netname..'.t7')
+    print('privious opt',privOpt)
+  else net = make_net(opt.ch) end
+
+print(opt)
 net:training()
 net:cuda()
---cudnn.convert(net,cudnn)
+
+print('training')
 
 local img_Info_table = ImgInfo()
 
@@ -45,65 +63,75 @@ if x ~= params then
 
 
 
-local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
-
 grads:zero()
 --net:clearState()
 --local detc = torch.sum(torch.gt(target[1],21))+ torch.sum(torch.lt(target[1],1))
 --assert(detc==0 , 'wrong class label')
-print(cutorch.getMemoryUsage(1))
+local f =0
+
+for iter = 1, multi_batch do
+
+local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
+--print(cutorch.getMemoryUsage(1))
 
 local output = net:forward(input:cuda())
 input:float()
-print(cutorch.getMemoryUsage(1))
+--print(cutorch.getMemoryUsage(1))
 -----------------------------------
 --net:float()
 local err, df_dx = MultiBoxLoss(output:float(),target)
+f = f+ err
 ------------------------------------
 --net:cuda()
-print(cutorch.getMemoryUsage(1))
+--print(cutorch.getMemoryUsage(1))
 
 net:backward(input:cuda(),df_dx:cuda())
-print(cutorch.getMemoryUsage(1))
-
+--print(cutorch.getMemoryUsage(1))
+end
 --input = nil; df_dx = nil;
 --target =nil;
 
+f = f/ multi_batch
+grads:div(multi_batch)
+
 collectgarbage();
-return err,grads
+return f, grads
 end -- end local feval
 -------------------------------------------
 
-local losses = {}
-local val_losses = {}
-for iteration =1,opt.end_iter do
 
+for iteration = start_iter,opt.end_iter do
+  
+  if iteration == 60*1000 then optimState.learningRate = 1e-4 end
+  local _, loss = optim.sgd(feval,params,optimState)
+  table.insert(losses,loss[1])
 
-if iteration == 60*1000 then optimState.learningRate = 1e-4 end
-
-
-local _, loss = optim.sgd(feval,params,optimState)
-
-table.insert(losses,loss[1])
-if opt.valid ==true and iteration%opt.test_iter ==0 then
-         validation(net,'valid_loss_'..iteration)
-        
-    end
-  if iteration%opt.plot_iter ==0 then
-        local start_num, end_num = math.max(1,iteration-opt.plot_iter*10),iteration
-        gnuplot.plot({'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
+  if opt.valid ==true and iteration%opt.test_iter ==0 then
+         validation(net,'valid_loss_'..iteration)   
   end
 
   if iteration % opt.print_iter ==0 then 
         print('iter',iteration,'loss ',loss[1])
   end
 
-
-  if iteration % opt.save_iter ==0 then 
-        net:clearState()
-        torch.save('model/'..netname..'_intm.net',net)
-        torch.save('loss/lossof'..netname..'_intm.t7',losses)
+  if iteration%opt.plot_iter ==0 then
+    local start_num, end_num = math.max(1,iteration-opt.plot_iter*10),iteration
+    gnuplot.plot({'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
   end
+
+  
+  if iteration % opt.save_iter ==0 then 
+     --   net:clearState()
+--        net:float()
+--        cudnn.convert(net,nn)
+        print('net saving')
+        torch.save('model/'..netname..'_intm.net',net)
+
+        torch.save('model/lossof'..netname..'_intm.t7',losses)
+        torch.save('model/optof'..netname..'.t7',opt)
+        print('net saved')
+--        net = cudnn.convert(net,cudnn):cuda()
+   end
 
 end
 
@@ -113,8 +141,8 @@ end
   net:clearState()
 
 
-  torch.save('model/'..netname..'.nnet',net)
-  torch.save('loss/lossof'..netname..'.t7',losses)
+  torch.save('model/'..netname..'.net',net)
+  torch.save('model/lossof'..netname..'.t7',losses)
 
 print('training end')
 end
