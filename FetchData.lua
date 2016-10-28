@@ -37,12 +37,12 @@ function augment(img,gt_anno_class) --gt_anno : 4 by ...
 
   else
     if random ==2 then
-      local min_jaccard_ratio = math.random(1,5)/5-0.1
+      local min_jaccard_ratio = math.random(2,6)/6-0.1--math.random(1,5)/5-0.1
       local patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/w,(sy+crop_h-1)/h})
       local idx =0
 
       repeat 
-      if idx>20 then goto otherOpt end
+      if idx>30 then goto otherOpt end
       sx,sy=math.random(1, w-crop_w+1),math.random(1,h-crop_h+1)
 patch = torch.Tensor({sx/w,sy/h,(sx+crop_w-1)/h,(sy+crop_h)/h}):reshape(4,1)
 
