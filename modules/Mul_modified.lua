@@ -31,8 +31,8 @@ end
 
 function Mul_modified:updateOutput(input)
 
-  if input:dim() == 3 then self.weight = self.weight:view(self.ch,1,1) 
-          elseif input:dim() == 4 then self.weight=self.weight:view(1,self.ch,1,1) end
+  if input:dim() == 3 then input = input:view(1,input:size(1),input:size(2),input:size(3))  end
+--          elseif input:dim() == 4 then self.weight=self.weight:view(1,self.ch,1,1) end
 
   self.output:resizeAs(input):copy(input)
 
@@ -51,7 +51,8 @@ function Mul_modified:updateGradInput(input ,gradOutput)
 
 
  self.gradInput:addcmul(1,self.weight:expandAs(gradOutput),gradOutput)
-  return self.gradInput
+
+return self.gradInput
 
 end
 
@@ -63,13 +64,14 @@ if input:dim() ==4 then  self.gradWeight = self.gradWeight +scale*input:cmul(gra
   
   
 end
-
+--[[
 function Mul_modified:clearState()
 nn.utils.clear(self,{
-        'weight',
-        'gradWeight'
+        
+        
         
         })
 
 
 end
+]]--
