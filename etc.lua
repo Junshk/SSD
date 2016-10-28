@@ -94,14 +94,16 @@ end
 -- Minor changes by Andreas Köpf, 2015-09-17 
 function nms(boxes, overlap, scores,image_size) -- adjusted
   boxes = boxes:float(); scores = scores:float()
-  local score_upper = torch.gt(scores:view(-1,1),0.1)
+  local score_upper = torch.gt(scores:view(-1,1),0.01)
   scores = scores[score_upper]
 --  print(score_upper:type(),score_upper:size())
 
   score_upper = score_upper:expandAs(boxes)
 --  print('@',score_upper:type(),score_upper:size())
-  boxes = boxes[score_upper]:view(-1,4)
---  boxes = torch.reshape(boxes,boxes:numel(),4)
+--print(boxes:type(),boxes:size(),boxes[score_upper]:size(),boxes[score_upper]:type(),'-')
+  boxes = boxes[score_upper]
+  --  boxes = torch.reshape(boxes,boxes:numel(),4)
+  
 --  print(boxes:size())
   
   local pick = torch.LongTensor()
@@ -109,6 +111,8 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
   if boxes:numel() == 0 then
     return pick
   end
+
+  boxes = boxes:view(-1,4)
 
   local box_num = boxes:size(1)
 --  local all_pairs_iou = torch.Tensor(box_num,box_num)
