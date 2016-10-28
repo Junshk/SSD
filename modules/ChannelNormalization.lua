@@ -11,7 +11,7 @@ parent.__init(self)
 assert(p, 'p-norm not provided')
 assert(p > 0, p..'-norm not supported')
 self.p =p
-self.eps = eps or 1e-10
+self.eps = eps or 1e-30
 
 end
 
@@ -33,8 +33,8 @@ self._repeat = self._repeat or input.new()
 self._expand = self._expand or input.new()
 self._output:resizeAs(input)
 
-
-self.norm = torch.norm(input,self.p,featureDim)
+self.norm:norm(input,self.p,featureDim)
+--self.norm = torch.norm(input,self.p,featureDim)
 
 self.norm:add(self.eps)
 
