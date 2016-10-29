@@ -235,7 +235,7 @@ local randperm = torch.randperm(n)
 rand = rand:index(1,randperm:long())
 local new_list ={}
 for iter = 1, n do
-new_list[iter] = valid_list[rand[n]]
+new_list[iter] = valid_list[rand[iter]]
 end
 
 local result = test(net,new_list,'validation/'..savename)
