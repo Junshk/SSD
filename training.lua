@@ -43,7 +43,7 @@ opt.cont =false end
     net = torch.load('model/'..netname..'_intm.net')  
     privOpt = torch.load('model/optof'..netname..'.t7')
     print('privious opt',privOpt)
-  else net = make_net(opt.ch) end
+  else net = make_net(opt.ch,opt,mul) end
 
 print(opt)
 net:training()

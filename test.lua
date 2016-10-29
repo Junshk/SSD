@@ -21,7 +21,8 @@ function write_txt(result,folder,class_num)
 
 --      for class_num = 1, 20 do
 
-        local class_box , class_score = result.box, result.score             
+        local class_box , class_score = result.box, result.score
+        if class_box:numel() ==0 then return end
         local write_result = io.open(folder..'/'..'comp3_det_test_'..num2class(class_num)..'.txt',"a")
     --      for image_iter = 1, #class_result do
           --   local image_result = class_result[image_iter]         
