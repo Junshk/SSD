@@ -79,7 +79,7 @@ input:float()
 --print(cutorch.getMemoryUsage(1))
 -----------------------------------
 --net:float()
-local err, df_dx = MultiBoxLoss(output:float(),target)
+local err, df_dx = MultiBoxLoss(output:float(),target,opt.lambda)
 f = f+ err
 ------------------------------------
 --net:cuda()

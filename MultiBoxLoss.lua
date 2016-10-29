@@ -26,7 +26,7 @@ function wo2bat(input,batch)
   return reshaped
 end
 -----------------------------------------
-function MultiBoxLoss(input,target)  -- target1 : class 1 by pyramid, bd 4 by pyramid
+function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 4 by pyramid
 
   local alpha = 1
   local loss = 0
@@ -71,8 +71,8 @@ function MultiBoxLoss(input,target)  -- target1 : class 1 by pyramid, bd 4 by py
 -- forward
 
   loss_conf = CrossEntropy:forward((input1):cuda(),(target1):cuda())
-  loss_loc =alpha*L1loss:forward((input2):cuda(),(target2):cuda())/4
-  dl_dx_loc = alpha * L1loss:backward((input2):cuda(),(target2):cuda()):float()/4
+  loss_loc =alpha*L1loss:forward((input2):cuda(),(target2):cuda())*lambda
+  dl_dx_loc = alpha * L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
 
   L1loss = nil;
   input2= nil ;

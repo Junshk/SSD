@@ -19,9 +19,10 @@ local option =
   cont =true
 , ch = true
 , mul = true
+, lambda =1
 }
 
-option.netname = option.netname..'_b'.. option.batch_size..'_m'..option.multi_batch
+option.netname = option.netname..'_b'.. option.batch_size..'_m'..option.multi_batch.. '_lam'..option.lambda*100
 if option.ch == true then option.netname  = option.netname .. '_ch' end
 
 if option.mul == true then option.netname  = option.netname .. '_mul_fixconf' end

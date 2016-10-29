@@ -229,16 +229,16 @@ io.close(f)
 
 
 -- random sample list
-local rand = torch.range(1,#list)
+local rand = torch.range(1,#valid_list)
 local n = 500
 local randperm = torch.randperm(n)
 rand = rand:index(1,randperm:long())
 local new_list ={}
 for iter = 1, n do
-new_list[iter] = list[rand[n]]
+new_list[iter] = valid_list[rand[n]]
 end
 
-local result = test(net,valid_list,'validation/'..savename)
+local result = test(net,new_list,'validation/'..savename)
 
 
 end
