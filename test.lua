@@ -227,6 +227,17 @@ table.insert(valid_list,img)
 end
 io.close(f)
 
+
+-- random sample list
+local rand = torch.range(1,#list)
+local n = 500
+local randperm = torch.randperm(n)
+rand = rand:index(1,randperm:long())
+local new_list ={}
+for iter = 1, n do
+new_list[iter] = list[rand[n]]
+end
+
 local result = test(net,valid_list,'validation/'..savename)
 
 

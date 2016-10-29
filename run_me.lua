@@ -22,9 +22,9 @@ local option =
 }
 
 option.netname = option.netname..'_b'.. option.batch_size..'_m'..option.multi_batch
---if option.ch == true then option.netname  = option.netname .. '_ch' end
+if option.ch == true then option.netname  = option.netname .. '_ch' end
 
-if option.mul == true then option.netname  = option.netname .. '_mul_fix' end
+if option.mul == true then option.netname  = option.netname .. '_mul_fixconf' end
 -- training
 training(option)
 

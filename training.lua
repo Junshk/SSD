@@ -43,12 +43,12 @@ opt.cont =false end
     net = torch.load('model/'..netname..'_intm.net')  
     privOpt = torch.load('model/optof'..netname..'.t7')
     print('privious opt',privOpt)
-  else net = make_net(opt.ch,opt,mul) end
+  else net = make_net(opt.ch,opt.mul) end
 
 print(opt)
 net:training()
 net:cuda()
-
+print(net)
 print('training')
 
 local img_Info_table = ImgInfo()
@@ -121,7 +121,7 @@ for iteration = start_iter,opt.end_iter do
 
   
   if iteration % opt.save_iter ==0 then 
-     --   net:clearState()
+        net:clearState()
 --        net:float()
 --        cudnn.convert(net,nn)
         print('net saving')

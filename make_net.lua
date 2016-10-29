@@ -191,7 +191,7 @@ local ss = nn.Sequential()
 local cmul = nn.CMul(1,512,1,1)
 cmul.weight:fill(20)
 if ch==true then ss:add(nn.ChannelNormalization(2)) end
-if mul==true then ss:add(cmul)end--ss:add(nn.Mul_modified(512,20)) end--nn.Mul():init('weight',nninit.constant,20))
+if mul==true then ss:add(cmul) print('cmul!')end--ss:add(nn.Mul_modified(512,20)) end--nn.Mul():init('weight',nninit.constant,20))
 concat1:add(ss)--cudnn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1))
 -- 4_3
 
