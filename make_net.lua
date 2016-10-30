@@ -3,7 +3,7 @@ require 'cudnn'
 require 'cunn'
 require 'loadcaffe'
 require 'modules/ChannelNormalization'
-require 'modules/Mul_modified'
+
 
 
 cudnn.fastest = true
