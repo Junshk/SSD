@@ -5,7 +5,7 @@ require 'training'
 
 print('load datas')
 
-local i = 800
+local i = 1000
 
 local option =
 {
