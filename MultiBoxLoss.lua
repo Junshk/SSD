@@ -54,8 +54,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   discard_mask = torch.gt(softmax_result,bd_conf):cmul(negative_mask)
 
 --discard
-  input2[negative_mask:expandAs(input2)] = 0
-  target2[negative_mask:expandAs(target2)] = 0--//
+  target2[discard_mask:expandAs(target2)]= input2[discard_mask:expandAs(input2)] 
+  
+  local _, input1_max = torch.max(input1,2)
+
+ target1[discard_mask:expandAs(target1)] = input1_max[discard_mask:expandAs(target1)]:float()
+
 --------------------------------
   local dl_dx_loc = torch.Tensor(target2)
   local dl_dx_conf 
@@ -84,7 +88,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   CrossEntropy = nil
 
 --discard conf
-  dl_dx_conf[discard_mask:expandAs(dl_dx_conf)] =0
+--  dl_dx_conf[discard_mask:expandAs(dl_dx_conf)] =0
   
 --resize
 
@@ -92,7 +96,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   dl_dx_conf = wo2bat(dl_dx_conf,batch)
 
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
-  local n = positive_num+negative_num+1e-10 ; --if n ==0 then n =1; print('n ==0')end 
+  local n = positive_num+negative_num+1 ; --if n ==0 then n =1; print('n ==0')end 
 
   collectgarbage();
   return (loss_conf+loss_loc)/n, dl_dx/n
