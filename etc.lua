@@ -94,17 +94,17 @@ end
 -- Minor changes by Andreas Köpf, 2015-09-17 
 function nms(boxes, overlap, scores,image_size) -- adjusted
   boxes = boxes:float(); scores = scores:float()
-  local score_upper = torch.gt(scores:view(-1,1),0.01)
-  scores = scores[score_upper]
---  print(score_upper:type(),score_upper:size())
+--  local score_upper = torch.gt(scores:view(-1,1),0.01)
+--  scores = scores[score_upper]
 
-  score_upper = score_upper:expandAs(boxes)
---  print('@',score_upper:type(),score_upper:size())
---print(boxes:type(),boxes:size(),boxes[score_upper]:size(),boxes[score_upper]:type(),'-')
-  boxes = boxes[score_upper]
+
+--  score_upper = score_upper:expandAs(boxes)
+
+
+--  boxes = boxes[score_upper]
   --  boxes = torch.reshape(boxes,boxes:numel(),4)
   
---  print(boxes:size())
+
   
   local pick = torch.LongTensor()
 
@@ -142,10 +142,12 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
 --  ymax=nil;ymin=nil;xmax=nil;xmin=nil; collectgarbage();
 
   local w , h = boxes_mm[{{},{3}}] - boxes_mm[{{},{1}}], boxes_mm[{{},{4}}] - boxes_mm[{{},{2}}]
-
+  
+  local S = torch.cmul(w,h):float()
   local area = torch.cmul(w:cuda():expand(box_num,box_num),h:cuda():expand(box_num,box_num)):cmax(0)
-  inter[torch.eq(area,0)] = 1
-  area[torch.eq(area,0)] = 1
+--  inter[torch.eq(area,0)] = 1
+--  area[torch.eq(area,0)] = 1
+
   local IOU = torch.cdiv(inter,area+area:t()-inter):float()
   
   
@@ -177,6 +179,8 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
     local last = Order:size(1)
     local i = Order[last]
     
+    
+
     pick[count] = i
     count = count + 1
     
@@ -186,34 +190,6 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
     
 
     Order = Order[{{1, last-1}}] -- remove picked element from view
-   --[[ 
-    -- load values 
-    xx1:index(x, 1, I)
-    yy1:index(y, 1, I)
-    xx2:index(x+w, 1, I)
-    yy2:index(y+h, 1, I)
-    
-    -- compute intersection area
-    xx1:cmax(x[i])
-    yy1:cmax(y[i])
-    xx2:cmin(x[i]+w[i])
-    yy2:cmin(y[i]+h[i])
-    
---    ww:index(w,1,I) 
---    hh:index(h,1,I)
-
---    torch.add(w, xx2, -1, xx1):add(1):cmax(0)
---    torch.add(h, yy2, -1, yy1):add(1):cmax(0)
-    
-    -- reuse existing tensors
-    local inter = (xx2-xx1):cmul(yy2-yy1):cmax(0)
-    local IoU = inter:cdiv(area:index(1,I)+area[i]-inter)
-    
-    -- IoU := i / (area(a) + area(b) - i)
---    xx1:index(area, 1, I) -- load remaining areas into xx1
---    torch.cdiv(IoU, inter, xx1 + area[i] - inter) -- store result in iou
-    ]]--
-
     local partial_IoU = IOU[i]:squeeze():index(1,Order)
 
     Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap 
@@ -223,7 +199,7 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
 end
 
   -- reduce size to actual count
-local a4 = sys.clock()
+  local a4 = sys.clock()
   local top = 200 
   count = math.min(count,top)
   pick = pick[{{1, count-1}}]
@@ -232,6 +208,10 @@ local a4 = sys.clock()
   boxes_mm[{{},{2}}]:mul(image_size[2])
   boxes_mm[{{},{3}}]:mul(image_size[3])
   boxes_mm[{{},{4}}]:mul(image_size[2])
---print(a4-a3,a3-a2,a2-a1)
+
+  -- remove wrong box
+  pick = pick[torch.ne(S:index(1,pick),0)]
+
+
    return boxes_mm:index(1,pick), scores:index(1,pick)
 end

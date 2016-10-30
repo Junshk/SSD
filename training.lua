@@ -115,7 +115,8 @@ for iteration = start_iter,opt.end_iter do
   end
 
   if iteration%opt.plot_iter ==0 then
-    local start_num, end_num = math.max(1,iteration-opt.plot_iter*10),iteration
+    local start_num, end_num = 
+    math.max(1,iteration-opt.plot_iter*100), iteration
     gnuplot.plot({netname..'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
   end
 

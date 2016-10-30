@@ -24,6 +24,7 @@ function write_txt(result,folder,class_num)
         local class_box , class_score = result.box, result.score
         if class_box:numel() ==0 then return end
         local write_result = io.open(folder..'/'..'comp3_det_test_'..num2class(class_num)..'.txt',"a")
+        write_result:write('\n')
     --      for image_iter = 1, #class_result do
           --   local image_result = class_result[image_iter]         
             local image_name = string.sub(result.image_name,-11,-1)
@@ -35,7 +36,7 @@ function write_txt(result,folder,class_num)
 
             end
       --    end
-        
+       write_result:close() 
 --      end
   end
 
@@ -46,6 +47,14 @@ function test(net,list,folder)
   net:evaluate()
 
   print('testing..')
+  if paths.dirp(folder) ==false then os.execute('mkdir '..folder) end
+ 
+  local newf = assert(io.open(folder..'/test.txt',"w"))
+  for iter = 1, #list do
+        newf:write(string.sub(list[iter].image_name,-11,-1),'\n')
+  end
+  newf:close()
+
   local list = list or test_list
   local result = {}
 
@@ -84,7 +93,8 @@ function test(net,list,folder)
 
   refined_box = refined_box + real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
-  local score, recognition = torch.max(conf,3)
+--  local score, recognition = torch.max(conf,3)
+  
   -- nms
   for iter_image = 1, n do
     
@@ -92,14 +102,15 @@ function test(net,list,folder)
     local size = image.load(image_name..'.jpg'):size()
     for iter_class =1, 20 do
     local res = {}
-    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
-   -- print(index:size(),refined_box[iter_image]:size())
-    local detection_box = refined_box[iter_image]
--- print(detection_box:size(),index:type())   
-    detection_box =detection_box[index:expandAs(detection_box)]
+--    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
+    local index = torch.gt(conf[{iter_image,{iter_class},{}}],0.01)
  
+    local detection_box = refined_box[iter_image]
+
+    detection_box =detection_box[index:expandAs(detection_box)]
     detection_box = detection_box:view(-1,4)
-    local detection_score = score[iter_image][index]:view(-1)
+
+    local detection_score = conf[iter_image][index]:view(-1)
     res.image_name = image_name
     
     --nms
@@ -226,8 +237,6 @@ table.insert(valid_list,img)
 
 end
 io.close(f)
-
-
 -- random sample list
 local rand = torch.range(1,#valid_list)
 local n = 500
@@ -237,6 +246,8 @@ local new_list ={}
 for iter = 1, n do
 new_list[iter] = valid_list[rand[iter]]
 end
+-- new list write
+
 
 local result = test(net,new_list,'validation/'..savename)
 

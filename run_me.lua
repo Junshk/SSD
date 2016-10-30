@@ -31,10 +31,18 @@ training(option)
 
 -- test code
 require 'test'
+local test_txt = 'VOCdevkit/VOC2012_test/ImageSets/Main/test.txt'
 local test_list = {}
+local f_test = assert(io.open(test_txt,"r"))
+
+for line in io.lines(f_test) do
+        table.insert(test_list,line)
+end
+f_test:close()
+
 local test_folder = 'Test/'
 local net = torch.load(option.netname..'.net')
 
 test(net,test_list,test_folder)
 
-os.excute()
+os.execute('matlab -r -nodisplay plot_map')
