@@ -103,14 +103,15 @@ function test(net,list,folder)
     for iter_class =1, 20 do
     local res = {}
 --    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
-    local index = torch.gt(conf[{iter_image,{iter_class},{}}],0.01)
+    local conf_image_class = conf[{iter_image,{},{iter_class}}]
+    local index = torch.gt(conf_image_class,0.01)
  
     local detection_box = refined_box[iter_image]
 
     detection_box =detection_box[index:expandAs(detection_box)]
     detection_box = detection_box:view(-1,4)
 
-    local detection_score = conf[iter_image][index]:view(-1)
+    local detection_score = conf_image_class[index]:squeeze()
     res.image_name = image_name
     
     --nms

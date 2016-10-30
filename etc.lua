@@ -124,17 +124,19 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
   boxes_mm[{{}, {2}}] = boxes[{{},{ 4}}] - boxes[{{},{2}}]/2
   boxes_mm[{{},{3}}] = boxes[{{},{ 3}}] + boxes[{{},{1}}]/2
   boxes_mm[{{}, {4}}] = boxes[{{},{ 4}}] + boxes[{{},{2}}]/2
+  
+  boxes_mm:cuda()
+  boxes_mm:clamp(0,1)
 
-  boxes_mm:cmin(1):cmax(0)
   local w, h = boxes_mm[{{},{3}}]-boxes_mm[{{},{1}}], boxes_mm[{{},{4}}]-boxes_mm[{{},{2}}]
 
-  local xmax = boxes_mm[{{},{3}}]:expand(box_num,box_num):cuda()
+  local xmax = boxes_mm[{{},{3}}]:expand(box_num,box_num)
   xmax = torch.cmin(xmax,xmax:t())
-  local xmin = boxes_mm[{{},{1}}]:expand(box_num,box_num):cuda()
+  local xmin = boxes_mm[{{},{1}}]:expand(box_num,box_num)
   xmin = torch.cmax(xmin,xmin:t())
-  local ymax = boxes_mm[{{},{4}}]:expand(box_num,box_num):cuda()
+  local ymax = boxes_mm[{{},{4}}]:expand(box_num,box_num)
   ymax = torch.cmin(ymax,ymax:t())
-  local ymin = boxes_mm[{{},{2}}]:expand(box_num,box_num):cuda()
+  local ymin = boxes_mm[{{},{2}}]:expand(box_num,box_num)
   ymin = torch.cmax(ymin,ymin:t())
 
 
@@ -144,11 +146,12 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
   local w , h = boxes_mm[{{},{3}}] - boxes_mm[{{},{1}}], boxes_mm[{{},{4}}] - boxes_mm[{{},{2}}]
   
   local S = torch.cmul(w,h):float()
-  local area = torch.cmul(w:cuda():expand(box_num,box_num),h:cuda():expand(box_num,box_num)):cmax(0)
+  local area = torch.cmul(w:expand(box_num,box_num),h:expand(box_num,box_num)):cmax(0)
 --  inter[torch.eq(area,0)] = 1
 --  area[torch.eq(area,0)] = 1
 
-  local IOU = torch.cdiv(inter,area+area:t()-inter):float()
+  local IOU = torch.cdiv(inter,area+area:t()-inter)
+  IOU = IOU:float()
   
   
   local a2 = sys.clock()
@@ -212,6 +215,7 @@ end
   -- remove wrong box
   pick = pick[torch.ne(S:index(1,pick),0)]
 
-
+  boxes_mm = boxes_mm:float()
+  scores = scores:float()
    return boxes_mm:index(1,pick), scores:index(1,pick)
 end
