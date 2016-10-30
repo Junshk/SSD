@@ -92,98 +92,89 @@ end
 -- Original author: Francisco Massa: https://github.com/fmassa/object-detection.torch 
 -- Based on matlab code by Pedro Felzenszwalb https://github.com/rbgirshick/voc-dpm/blob/master/test/nms.m
 -- Minor changes by Andreas Köpf, 2015-09-17 
-function nms(boxes, overlap, scores,image_size) -- adjusted
-  boxes = boxes:float(); scores = scores:float()
---  local score_upper = torch.gt(scores:view(-1,1),0.01)
---  scores = scores[score_upper]
 
+-- In addition to above, this code is adjusted version of fast nms for SSD. 
+-- The authors of SSD use cuda to solve nms more faster 
 
---  score_upper = score_upper:expandAs(boxes)
+function nms(boxes_mm, overlap, scores,image_size) -- adjusted
 
-
---  boxes = boxes[score_upper]
-  --  boxes = torch.reshape(boxes,boxes:numel(),4)
-  
-
-  
+  boxes_mm = boxes_mm:float(); 
+ 
   local pick = torch.LongTensor()
 
-  if boxes:numel() == 0 then
+  if boxes_mm:numel() == 0 then
     return pick
   end
 
-  boxes = boxes:view(-1,4)
+  boxes_mm = boxes_mm:view(-1,4)
 
-  local box_num = boxes:size(1)
---  local all_pairs_iou = torch.Tensor(box_num,box_num)
+  local box_num = boxes_mm:size(1)
 
   local a1 = sys.clock()
-  local boxes_mm = torch.Tensor(boxes)
-
-  boxes_mm[{{},{1}}] = boxes[{{},{ 3}}] - boxes[{{},{1}}]/2
-  boxes_mm[{{}, {2}}] = boxes[{{},{ 4}}] - boxes[{{},{2}}]/2
-  boxes_mm[{{},{3}}] = boxes[{{},{ 3}}] + boxes[{{},{1}}]/2
-  boxes_mm[{{}, {4}}] = boxes[{{},{ 4}}] + boxes[{{},{2}}]/2
   
-  boxes_mm:cuda()
+  boxes_mm = boxes_mm:cuda()
+  local w_2 =boxes_mm[{{},{1}}]:div(2)
+  local h_2 =boxes_mm[{{},{2}}]:div(2)
+
+  boxes_mm[{{},{1,2}}]:copy(boxes_mm[{{},{3,4}}])
+  
+  boxes_mm[{{},{1}}]:csub(w_2)
+  boxes_mm[{{}, {2}}]:csub( h_2)
+  boxes_mm[{{},{3}}]:add(w_2)
+  boxes_mm[{{}, {4}}]:add(h_2)
+  
   boxes_mm:clamp(0,1)
 
-  local w, h = boxes_mm[{{},{3}}]-boxes_mm[{{},{1}}], boxes_mm[{{},{4}}]-boxes_mm[{{},{2}}]
+  local S, h = torch.csub(boxes_mm[{{},{3}}],boxes_mm[{{},{1}}]), torch.csub(boxes_mm[{{},{4}}],boxes_mm[{{},{2}}])
+  S:cmul(h) -- reuse
+  local xmax = boxes_mm[{{},{3}}]
+  xmax= torch.cmin(xmax:expand(box_num,box_num),xmax:t():expand(box_num,box_num))
 
-  local xmax = boxes_mm[{{},{3}}]:expand(box_num,box_num)
-  xmax = torch.cmin(xmax,xmax:t())
-  local xmin = boxes_mm[{{},{1}}]:expand(box_num,box_num)
-  xmin = torch.cmax(xmin,xmin:t())
-  local ymax = boxes_mm[{{},{4}}]:expand(box_num,box_num)
-  ymax = torch.cmin(ymax,ymax:t())
-  local ymin = boxes_mm[{{},{2}}]:expand(box_num,box_num)
-  ymin = torch.cmax(ymin,ymin:t())
+  local xmin = boxes_mm[{{},{1}}]
+  xmax:csub(xmin:expand(box_num,box_num):cmax(xmin:t():expand(box_num,box_num)))-- = torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num))
 
 
-  local inter = torch.cmul(ymax-ymin,xmax-xmin)
---  ymax=nil;ymin=nil;xmax=nil;xmin=nil; collectgarbage();
-
-  local w , h = boxes_mm[{{},{3}}] - boxes_mm[{{},{1}}], boxes_mm[{{},{4}}] - boxes_mm[{{},{2}}]
   
-  local S = torch.cmul(w,h):float()
-  local area = torch.cmul(w:expand(box_num,box_num),h:expand(box_num,box_num)):cmax(0)
---  inter[torch.eq(area,0)] = 1
---  area[torch.eq(area,0)] = 1
+   local a2 = sys.clock()
 
-  local IOU = torch.cdiv(inter,area+area:t()-inter)
-  IOU = IOU:float()
+  local ymax = boxes_mm[{{},{4}}]
+  ymax = torch.cmin(ymax:expand(box_num,box_num),ymax:t():expand(box_num,box_num))
+  local ymin = boxes_mm[{{},{2}}]
+  ymax:csub(ymin:expand(box_num,box_num):cmax(ymin:t():expand(box_num,box_num)))
+
+
+   local a3 =sys.clock()
+   
+ 
+  local inter = torch.cmul(ymax,xmax)
+
+  local IOU = torch.cdiv(inter,S:expand(box_num,box_num)+S:t():expand(box_num,box_num)-inter)
+
+
   
-  
-  local a2 = sys.clock()
-  
-  local v, Order = scores:cuda():sort(1)
+ 
+  scores = scores:cuda()
+local   v, Order = scores:sort(1)
   Order=Order:long()
-  v = nil;
 
+
+local a4= sys.clock()
 
 
 
 
   pick:resize(box_num):zero()
-  local count = 1
-  --[[
-  local xx1 = boxes.new()
-  local yy1 = boxes.new()
-  local xx2 = boxes.new()
-  local yy2 = boxes.new()
+  count = 1
 
-  local ww = boxes.new()
-  local hh = boxes.new()
-]]--
-
-
-  local a3= sys.clock()
- while Order:numel() > 0 do 
+while true do 
+ if Order == nil then print('order nil') break end
+ if Order:numel() == 0 then break end
+    
     local last = Order:size(1)
     local i = Order[last]
     
     
-
+  --  print(count,i)
     pick[count] = i
     count = count + 1
     
@@ -193,29 +184,35 @@ function nms(boxes, overlap, scores,image_size) -- adjusted
     
 
     Order = Order[{{1, last-1}}] -- remove picked element from view
-    local partial_IoU = IOU[i]:squeeze():index(1,Order)
+    local partial_IoU = IOU[i]:float():squeeze():index(1,Order)
 
-    Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap 
---  Order = Order:cmul(partial_IoU)
-
---if torch.gt(Order,0):numel() ==0 then break;end
+    Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap
+  --  print(pick:size())
 end
 
   -- reduce size to actual count
-  local a4 = sys.clock()
+  local a5 = sys.clock()
   local top = 200 
   count = math.min(count,top)
-  pick = pick[{{1, count-1}}]
 
+  pick = pick[{{1, count-1}}]
+--print(pick:size()) 
   boxes_mm[{{},{1}}]:mul(image_size[3])
   boxes_mm[{{},{2}}]:mul(image_size[2])
   boxes_mm[{{},{3}}]:mul(image_size[3])
   boxes_mm[{{},{4}}]:mul(image_size[2])
 
   -- remove wrong box
+  S = S:float()
   pick = pick[torch.ne(S:index(1,pick),0)]
-
+--  print(pick:size())
+  local a6 =sys.clock()
+--  print(a6-a5,a5-a4,a4-a3,a3-a2,a2-a1)
+  
   boxes_mm = boxes_mm:float()
   scores = scores:float()
-   return boxes_mm:index(1,pick), scores:index(1,pick)
+--print(pick)
+   boxes_mm = boxes_mm:index(1,pick)
+   scores = scores:index(1,pick)
+   return boxes_mm, scores
 end

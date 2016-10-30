@@ -5,6 +5,8 @@ require 'image'
 require 'pascal'
 require 'prior_box'
 
+local batch = 12
+
 torch.setdefaulttensortype('torch.FloatTensor')
 --local real_box_redefine =real_box_ratio:t():view(1,4,20097):copy()
 --local matio = require 'matio'
@@ -62,12 +64,12 @@ function test(net,list,folder)
   
   local result_vector = torch.Tensor(#list,25,20097)
 
-  local batch = 12
   local iter = 1
 
 -- forward
   while iter <= #list do
-   
+   if iter %1000 ==0 then  print(iter,'/',#list) end
+  
   local start_iter , end_iter = iter, math.min(iter +batch -1,#list)
   local n = end_iter - start_iter +1
   local input_tensor = torch.Tensor(n,3,500,500)
@@ -94,7 +96,7 @@ function test(net,list,folder)
   refined_box = refined_box + real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
 --  local score, recognition = torch.max(conf,3)
-  
+  net:float()
   -- nms
   for iter_image = 1, n do
     
@@ -104,7 +106,7 @@ function test(net,list,folder)
     local res = {}
 --    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
     local conf_image_class = conf[{iter_image,{},{iter_class}}]
-    local index = torch.gt(conf_image_class,0.01)
+    local index = torch.gt(conf_image_class,0.015)
  
     local detection_box = refined_box[iter_image]
 
@@ -130,6 +132,7 @@ function test(net,list,folder)
   input_tensor =nil; collectgarbage();
   result = {}
   iter = end_iter + 1
+  net:cuda()
   end
 --[[
   net:float()
