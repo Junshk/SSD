@@ -28,7 +28,7 @@ end
 -----------------------------------------
 function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 4 by pyramid
 
-  local alpha = 1
+--  local alpha = 1
   local loss = 0
   local batch ; if input:dim()==3 then batch= input:size(1) else batch=1 end
 
@@ -51,10 +51,10 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
     bd_conf = score[{{discard_negative_num}}]:squeeze()
   else bd_conf =0 end
 
-  discard_mask = torch.gt(softmax_result,bd_conf):cmul(negative_mask)
+  discard_mask = torch.lt(softmax_result,bd_conf):cmul(negative_mask)
 
---discard
-  target2[discard_mask:expandAs(target2)]= input2[discard_mask:expandAs(input2)] 
+--discard, remove loc of 21(bg) 
+  target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)] 
   
   local _, input1_max = torch.max(input1,2)
 
@@ -75,8 +75,8 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 -- forward
 
   loss_conf = CrossEntropy:forward((input1):cuda(),(target1):cuda())
-  loss_loc =alpha*L1loss:forward((input2):cuda(),(target2):cuda())*lambda
-  dl_dx_loc = alpha * L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
+  loss_loc = L1loss:forward((input2):cuda(),(target2):cuda())*lambda
+  dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
 
   L1loss = nil;
   input2= nil ;
@@ -96,7 +96,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   dl_dx_conf = wo2bat(dl_dx_conf,batch)
 
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
-  local n = positive_num+negative_num+1 ; --if n ==0 then n =1; print('n ==0')end 
+  local n = math.max(positive_num+negative_num,1) ; --if n ==0 then n =1; print('n ==0')end 
 
   collectgarbage();
   return (loss_conf+loss_loc)/n, dl_dx/n
