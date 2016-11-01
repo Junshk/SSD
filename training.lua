@@ -107,7 +107,7 @@ for iteration = start_iter,opt.end_iter do
   table.insert(losses,loss[1])
 
   if opt.valid ==true and iteration%opt.test_iter ==0 then
-         validation(net,'valid_loss_'..iteration)   
+         validation(net,'valid_loss_'..iteration,option.netname)   
   end
 
   if iteration % opt.print_iter ==0 then 
