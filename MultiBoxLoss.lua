@@ -38,12 +38,14 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local negative_num = math.min(element-positive_num,positive_num*3)
   local discard_negative_num = (element)-positive_num-negative_num
   local discard_mask, bd_conf
+  local nomatch_mask
 
   local input1 , input2 = bat2wo(input[{{},{1,21}}]),bat2wo(input[{{},{22,25}}])
   local target1, target2 =bat2wo(target[1]), bat2wo(target[2])
   negative_mask = bat2wo(negative_mask)
-
-  local softmax_result = torch.exp(softmax:forward(input1:cuda()):float())[{{},{21}}]
+  
+  local softmax_score = softmax:forward(input1:cuda()):float():exp()
+  local softmax_result = softmax_score[{{},{21}}]
   input1:float()
 
   if discard_negative_num~=0 then
@@ -59,6 +61,9 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local _, input1_max = torch.max(input1,2)
 
  target1[discard_mask:expandAs(target1)] = input1_max[discard_mask:expandAs(target1)]:float()
+  nomatch_mask = torch.ne(input1_max,target1:long()) 
+  target2[nomatch_mask:expandAs(target2)] = input2[nomatch_mask:expandAs(input2)]:float()
+
 
 --------------------------------
   local dl_dx_loc = torch.Tensor(target2)
@@ -67,6 +72,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local L1loss = nn.SmoothL1Criterion()
   L1loss.sizeAverage = false
   local CrossEntropy = nn.CrossEntropyCriterion()
+  CrossEntropy.nll.sizeAverage = false
   local loss_conf ,loss_loc =0,0
 
   L1loss:cuda(); --
@@ -90,7 +96,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 
 --discard conf
 --  dl_dx_conf[discard_mask:expandAs(dl_dx_conf)] =0
-  
+ 
 --resize
 
   dl_dx_loc = wo2bat(dl_dx_loc,batch)
@@ -98,9 +104,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
   local n = math.max(positive_num+negative_num,1) ; --if n ==0 then n =1; print('n ==0')end 
-
+  
+  
+  --print(loss_conf,loss_loc)
   collectgarbage();
   return (loss_conf+loss_loc)/n, dl_dx/n
+
 end
 
 
