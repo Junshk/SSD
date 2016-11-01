@@ -81,7 +81,8 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   L1loss = nil;
   input2= nil ;
   target2:float();
-
+  
+  CrossEntropy.nll.sizeAverage = false
   dl_dx_conf = CrossEntropy:backward((input1):cuda(),target1:cuda()):float()
   input1 =nil;
   target1:float();

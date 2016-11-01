@@ -96,7 +96,7 @@ function test(net,list,folder)
   refined_box = refined_box + real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
 --  local score, recognition = torch.max(conf,3)
-  net:float()
+net:float()
   -- nms
   for iter_image = 1, n do
     

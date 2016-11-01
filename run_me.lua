@@ -10,7 +10,7 @@ local i = 1000
 local option =
 {
   
-  netname = 'vgg_SSD500',
+  netname = 'vgg_SSD500_lfalse',
 
   plot_iter =100,end_iter = 80*1000,print_iter=10,save_iter=200,
   test_iter = i,
