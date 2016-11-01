@@ -1,10 +1,17 @@
 
 dofile('dataload.lua')
 
-require 'training'
-
 print('load datas')
+var_w = 1
+var_x = 1
+norm = 1
+logarithm = false
+logadd = 1e-2
+bgr = true
+print(var_w,var_x,norm,logarithm,logadd,bgr)
+-----------------------
 
+require 'training'
 local i = 1000
 
 local option =
@@ -27,6 +34,11 @@ local option =
 
 --if option.mul == true then option.netname  = option.netname .. '_mul_fixconf' end
 -- training
+
+if logarithm == true then option.netname = option.netname .. 'log' end
+
+
+
 training(option)
 
 -- test code

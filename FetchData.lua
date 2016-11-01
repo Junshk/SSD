@@ -153,10 +153,21 @@ anno_class[{{},{iter}}] = torch.cat(anno,torch.Tensor({class}))
 
 end
 ---input normalize
-img[{{1}}] = (img[{{1}}]:float()-115.5431)/255
-img[{{2}}] = (img[{{2}}]:float()-110.0598)/255
-img[{{3}}] = (img[{{3}}]:float()-101.5981)/255
+if bgr == true then
+local vgg_img = torch.Tensor(img:size())
+
+vgg_img[{{3}}] = (img[{{1}}]:float()-123)
+vgg_img[{{2}}] = (img[{{2}}]:float()-117)
+vgg_img[{{1}}] = (img[{{3}}]:float()-104)
+img =vgg_img
+elseif bgr ==false then
+img[{{1}}] = (img[{{1}}]:float()-123)
+img[{{2}}] = (img[{{2}}]:float()-117)
+img[{{3}}] = (img[{{3}}]:float()-104)
+end
 ---
+
+img:div(norm)
 local aug_img,aug_anno,aug_class = augment(img,anno_class)
 
 if aug_img == nil then goto re end
@@ -168,9 +179,9 @@ end
 
 
 local prior_whcxy = real_box_ratio:clone()
-prior_whcxy:log()
-prior_whcxy[{{1,2}}]:mul(5)
-prior_whcxy[{{3,4}}]:mul(10)
+if logarithm ==true then prior_whcxy:add(logadd):log() end
+prior_whcxy[{{1,2}}]:mul(var_w)
+prior_whcxy[{{3,4}}]:mul(var_x)
 
 function patchFetch(batch_size,ImgInfo)
 local default_size = 20097
@@ -188,11 +199,11 @@ input_images[{{iter}}] = augmentedImg
 
 -- default box matching !!
 ---- thanks to jihong,
-aug_anno:log()
-aug_anno[{{1,2}}]:mul(5)
-aug_anno[{{3,4}}]:mul(10)
+if logarithm == true then aug_anno:add(logadd):log() end
+aug_anno[{{1,2}}]:mul(var_w)
+aug_anno[{{3,4}}]:mul(var_x)
 
-target_anno[{{iter}}] = aug_anno - torch.log(prior_whcxy)-- w,h cx,cy
+target_anno[{{iter}}] = aug_anno - prior_whcxy-- w,h cx,cy
 target_class[{{iter}}] = aug_class
 
 end

@@ -93,9 +93,10 @@ function test(net,list,folder)
   
   local refined_box = output[{{},{22,25}}]
   -- jihong --
-  refined_box[{{},{1,2}}]:div(5)
-  refined_box[{{},{3,4}}]:div(10)
-  refined_box = refined_box:exp() + real_box_ratio:view(1,4,20097):expand(n,4,20097)
+  refined_box[{{},{1,2}}]:div(var_w)
+  refined_box[{{},{3,4}}]:div(var_x)
+  if logarithm == true then refined_box:exp():sub(logadd) end
+  refined_box = refined_box + real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
 --  local score, recognition = torch.max(conf,3)
 net:float()
@@ -225,11 +226,13 @@ end
 
 
 
-function validation(net,savename)
+function validation(net,savename,netname)
 
 local valid_txt ='VOCdevkit/VOC2012/ImageSets/Main/val.txt'
 local valid_list = {}
+if paths.dirp('validation/'..netname )== false then os.execute('mkdir validation/'..netname) end
 
+local valid_folder = 'validation/'..netname ..'/'
 local f = assert(io.open(valid_txt,'r'))
 
 io.input(f)
@@ -255,7 +258,7 @@ end
 -- new list write
 
 
-local result = test(net,new_list,'validation/'..savename)
+local result = test(net,new_list,valid_folder..savename)
 
 
 end
