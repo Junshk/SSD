@@ -92,8 +92,10 @@ function test(net,list,folder)
   local conf = softmax:forward(conf_before_softmax:cuda()):view(n,20097,21):exp():float()
   
   local refined_box = output[{{},{22,25}}]
-
-  refined_box = refined_box + real_box_ratio:view(1,4,20097):expand(n,4,20097)
+  -- jihong --
+  refined_box[{{},{1,2}}]:div(5)
+  refined_box[{{},{3,4}}]:div(10)
+  refined_box = refined_box:exp() + real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
 --  local score, recognition = torch.max(conf,3)
 net:float()

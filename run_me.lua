@@ -10,7 +10,7 @@ local i = 1000
 local option =
 {
   
-  netname = 'vgg_SSD500_lfalse',
+  netname = 'vgg_SSD500_var',
 
   plot_iter =100,end_iter = 80*1000,print_iter=10,save_iter=200,
   test_iter = i,
@@ -22,10 +22,10 @@ local option =
 , lambda =1
 }
 
-option.netname = option.netname..'_b'.. option.batch_size..'_m'..option.multi_batch.. '_lam'..option.lambda*100
-if option.ch == true then option.netname  = option.netname .. '_ch' end
+--option.netname = option.netname..'_b'.. option.batch_size..'_m'..option.multi_batch.. '_lam'..option.lambda*100
+--if option.ch == true then option.netname  = option.netname .. '_ch' end
 
-if option.mul == true then option.netname  = option.netname .. '_mul_fixconf' end
+--if option.mul == true then option.netname  = option.netname .. '_mul_fixconf' end
 -- training
 training(option)
 

@@ -167,7 +167,10 @@ end
 -------------------------------------------------------------------------
 
 
-local prior_whcxy = real_box_ratio
+local prior_whcxy = real_box_ratio:clone()
+prior_whcxy:log()
+prior_whcxy[{{1,2}}]:mul(5)
+prior_whcxy[{{3,4}}]:mul(10)
 
 function patchFetch(batch_size,ImgInfo)
 local default_size = 20097
@@ -184,8 +187,12 @@ local augmentedImg,aug_anno, aug_class= dataload(ImgInfo) -- for a image
 input_images[{{iter}}] = augmentedImg
 
 -- default box matching !!
+---- thanks to jihong,
+aug_anno:log()
+aug_anno[{{1,2}}]:mul(5)
+aug_anno[{{3,4}}]:mul(10)
 
-target_anno[{{iter}}] = aug_anno - prior_whcxy-- w,h cx,cy
+target_anno[{{iter}}] = aug_anno - torch.log(prior_whcxy)-- w,h cx,cy
 target_class[{{iter}}] = aug_class
 
 end
