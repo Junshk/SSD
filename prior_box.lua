@@ -72,7 +72,7 @@ top[{{2}}] = (center_y-box_height/2)/img_size.h
 top[{{3}}] = (center_x+box_width/2)/img_size.w
 top[{{4}}] = (center_y+box_height/2)/img_size.h
 
-top:clamp(0,1)
+--top:clamp(0,1)
 return top
 end
 
