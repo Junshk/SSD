@@ -27,8 +27,9 @@ local function new_patch()
   local aspect = math.pow(2,math.random(-1,1))
   local crop_w, crop_h = math.min(math.floor(crop_size*math.sqrt(aspect)*w),w), 
                      math.min(math.floor(crop_size*math.sqrt(1/aspect)*h),h)
-  local  crop_sx ,crop_sy = math.ceil(w/2-math.random(1,math.floor(crop_w/2))),
-                             math.ceil(h/2-math.random(1,math.floor(crop_h/2)))
+  local  crop_sx ,crop_sy = math.random(1,w-crop_w+1), math.random(1,h-crop_h+1)
+  --math.ceil(w/2-math.random(1,math.floor(crop_w/2))),
+  --math.ceil(h/2-math.random(1,math.floor(crop_h/2)))
    
   return  crop_w,crop_h,crop_sx, crop_sy 
 end
