@@ -133,7 +133,7 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   xmax= torch.cmin(xmax:expand(box_num,box_num),xmax:t():expand(box_num,box_num))
 
   local xmin = boxes_mm[{{},{1}}]
-  xmax:csub(xmin:expand(box_num,box_num):cmax(xmin:t():expand(box_num,box_num)))-- = torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num))
+  xmax:csub(torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num)))-- = torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num))
 
 
   
@@ -142,7 +142,7 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   local ymax = boxes_mm[{{},{4}}]
   ymax = torch.cmin(ymax:expand(box_num,box_num),ymax:t():expand(box_num,box_num))
   local ymin = boxes_mm[{{},{2}}]
-  ymax:csub(ymin:expand(box_num,box_num):cmax(ymin:t():expand(box_num,box_num)))
+  ymax:csub(torch.cma(ymin:expand(box_num,box_num),ymin:t():expand(box_num,box_num)))
 
 
    local a3 =sys.clock()
