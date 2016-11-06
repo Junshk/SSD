@@ -113,16 +113,18 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   local a1 = sys.clock()
   
   boxes_mm = boxes_mm:cuda()
-  local w_2 =boxes_mm[{{},{1}}]:div(2)
-  local h_2 =boxes_mm[{{},{2}}]:div(2)
-
-  boxes_mm[{{},{1,2}}]:copy(boxes_mm[{{},{3,4}}])
+--  local w_2 = boxes_mm[{{},{1}}]:div(2)
+--  local h_2 = boxes_mm[{{},{2}}]:div(2)
   
-  boxes_mm[{{},{1}}]:csub(w_2)
-  boxes_mm[{{}, {2}}]:csub( h_2)
-  boxes_mm[{{},{3}}]:add(w_2)
-  boxes_mm[{{}, {4}}]:add(h_2)
+  boxes_mm[{{},{3}}]:add(1/2,boxes_mm[{{},{1}}])
+  boxes_mm[{{}, {4}}]:add(1/2,boxes_mm[{{},{2}}])--h_2) 
+--  boxes_mm[{{},{1,2}}]:copy(boxes_mm[{{},{3,4}}])
   
+--  boxes_mm[{{},{1}}]:csub(w_2)
+--  boxes_mm[{{}, {2}}]:csub( h_2)
+  boxes_mm[{{},{1}}]:add(boxes_mm[{{},{3}}],-1,boxes_mm[{{},{1}}])
+  boxes_mm[{{},{2}}]:add(boxes_mm[{{},{4}}],-1,boxes_mm[{{},{2}}])
+ 
   boxes_mm:clamp(0,1)
 
   local S, h = torch.csub(boxes_mm[{{},{3}}],boxes_mm[{{},{1}}]), torch.csub(boxes_mm[{{},{4}}],boxes_mm[{{},{2}}])
