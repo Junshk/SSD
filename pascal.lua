@@ -78,7 +78,7 @@ local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
               end
                object.bbox = BoundBox -- xmin, ymin,xmax,ymax
 					  
-            else assert(0,'wrong xml info')
+             --else assert(nil,'wrong xml info')
             end
 					end
 				end
