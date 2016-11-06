@@ -2,13 +2,17 @@
 dofile('dataload.lua')
 
 print('load datas')
-var_w = 10
-var_x = 5
+var_w = 5
+var_x = 10
 norm = 1
-logarithm = true
+Sub = true
+logarithm = false
 logadd = 1e-2
 bgr = true
-print(var_w,var_x,norm,logarithm,logadd,bgr)
+truck = true
+
+logarithm = logarithm and not Sub
+print(var_w,var_x,norm,logarithm,Sub,bgr,truck)
 -----------------------
 
 require 'training'
@@ -17,7 +21,7 @@ local i = 1000
 local option =
 {
   
-  netname = 'vgg_SSD500_varIsee_v2_prior_reAug',
+  netname = 'vgg_SSD500_varIsee_v2_prior_reAug_cropsxy',
 
   plot_iter =100,end_iter = 80*1000,
   print_iter=1,save_iter=200,
@@ -35,7 +39,8 @@ local option =
 
 --if option.mul == true then option.netname  = option.netname .. '_mul_fixconf' end
 -- training
-
+if Sub == true then option.netname = option.netname .. '_sub' end
+if truck == true then option.netname = option.netname .. '_truck' end
 if logarithm == true then option.netname = option.netname .. 'log' end
 option.netname = option.netname ..'_w'..var_w..'_x'..var_x
 

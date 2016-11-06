@@ -101,9 +101,9 @@ function test(net,list,folder)
 
   if logarithm == true then refined_box[{{},{1,2}}]:exp() end
   refined_box[{{},{3,4}}]:cmul(expand[{{},{1,2}}])
-   refined_box[{{},{1,2}}]:cmul(expand[{{},{1,2}}])
-   refined_box[{{},{3,4}}]:add(expand[{{},{3,4}}])
-         
+  refined_box[{{},{1,2}}]:cmul(expand[{{},{1,2}}])
+  refined_box[{{},{3,4}}]:add(expand[{{},{3,4}}])
+  if Sub == true then refined_box[{{},{1,2}}]:add(expand[{{},{1,2}}]) end  
   refined_box = refined_box --+ real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
 --  local score, recognition = torch.max(conf,3)
