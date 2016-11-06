@@ -48,12 +48,15 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local softmax_result = softmax_score[{{},{21}}]
   input1:float()
 
-  if discard_negative_num~=0 then
-    local score, k = torch.topk(softmax_result,discard_negative_num,1,true,true)
-    bd_conf = score[{{discard_negative_num}}]:squeeze()
-  else bd_conf =0 end
 
-  discard_mask = torch.lt(softmax_result,bd_conf):cmul(negative_mask)
+
+-------------------------------------------------------------------------
+  if discard_negative_num~=0 then
+    local score, k = torch.topk(softmax_result[negative_mask],discard_negative_num,1,false,true)
+    bd_conf = score[{{discard_negative_num}}]:squeeze()
+    else bd_conf =0 end
+
+  discard_mask = torch.le(softmax_result,bd_conf):cmul(negative_mask)
 
 --discard, remove loc of 21(bg) 
   target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)] 
@@ -61,22 +64,32 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local _, input1_max = torch.max(input1,2)
 
  target1[discard_mask:expandAs(target1)] = input1_max[discard_mask:expandAs(target1)]:float()
-  nomatch_mask = torch.ne(input1_max,target1:long()) 
-  target2[nomatch_mask:expandAs(target2)] = input2[nomatch_mask:expandAs(input2)]:float()
+ -- nomatch_mask = torch.ne(input1_max, target1:long()) 
+  --target2[nomatch_mask:expandAs(target2)] = input2[nomatch_mask:expandAs(input2)]:float()
+
+--  assert(nil)
+  local match_num = torch.sum(torch.eq(input1_max[1-discard_mask],target1[1-discard_mask]:long()))
+--print('mask',torch.sum(negative_mask),'>',torch.sum(discard_mask))
+--print(torch.sum(discard_mask),'=',element-negative_num-positive_num)
+
+
+
+
+
+
 
 
 --------------------------------
   local dl_dx_loc = torch.Tensor(target2)
   local dl_dx_conf 
 
-  local L1loss = nn.SmoothL1Criterion()
+  local L1loss = nn.SmoothL1Criterion():cuda()
   L1loss.sizeAverage = false
-  local CrossEntropy = nn.CrossEntropyCriterion()
+  local CrossEntropy = nn.CrossEntropyCriterion():cuda()
   CrossEntropy.nll.sizeAverage = false
-  local loss_conf ,loss_loc =0,0
+  local loss_conf ,loss_loc = 0,0
 
-  L1loss:cuda(); --
-  CrossEntropy:cuda() 
+
 --  input:float()
 -- forward
 
@@ -85,17 +98,15 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
 
   L1loss = nil;
-  input2= nil ;
+  input2 = nil ;
   target2:float();
   
-  CrossEntropy.nll.sizeAverage = false
-  dl_dx_conf = CrossEntropy:backward((input1):cuda(),target1:cuda()):float()
-  input1 =nil;
+    dl_dx_conf = CrossEntropy:backward((input1):cuda(),target1:cuda()):float()
+  input1 = nil;
   target1:float();
   CrossEntropy = nil
 
 --discard conf
---  dl_dx_conf[discard_mask:expandAs(dl_dx_conf)] =0
  
 --resize
 
@@ -104,11 +115,14 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
   local n = math.max(positive_num+negative_num,1) ; --if n ==0 then n =1; print('n ==0')end 
-  
-  
-  --print(loss_conf,loss_loc)
+  --print(match_num,'<=',positive_num+negative_num)
+  --print('p, n',positive_num,negative_num) 
+  local accuracy = match_num*100
+  --print('accuracy :', accuracy)--positive_num*100)  
   collectgarbage();
-  return (loss_conf+loss_loc)/n, dl_dx/n
+--  print(loss_conf,loss_loc)
+  assert(match_num<=positive_num+negative_num, 'wrong match_num '..match_num..' '..positive_num.. ' '..negative_num)
+  return (loss_conf+loss_loc), dl_dx,n, accuracy
 
 end
 
