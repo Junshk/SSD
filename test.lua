@@ -1,10 +1,10 @@
 require 'cunn'
 require 'cudnn'
-require 'etc'
+--require 'etc'
 require 'image'
 require 'pascal'
 require 'prior_box'
-
+print('test load')
 local batch = 12
 
 torch.setdefaulttensortype('torch.FloatTensor')
@@ -14,6 +14,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 --local test_list = {}
 local softmax = cudnn.LogSoftMax():cuda()
 softmax:evaluate()
+
 
 --------------------------------------------
 function write_txt(result,folder,class_num)
@@ -95,8 +96,15 @@ function test(net,list,folder)
   -- jihong --
   refined_box[{{},{1,2}}]:div(var_w)
   refined_box[{{},{3,4}}]:div(var_x)
-  if logarithm == true then refined_box:exp():sub(logadd) end
-  refined_box = refined_box + real_box_ratio:view(1,4,20097):expand(n,4,20097)
+
+  local expand = real_box_ratio:view(1,4,20097):expand(n,4,20097)
+
+  if logarithm == true then refined_box[{{},{1,2}}]:exp() end
+  refined_box[{{},{3,4}}]:cmul(expand[{{},{1,2}}])
+   refined_box[{{},{1,2}}]:cmul(expand[{{},{1,2}}])
+   refined_box[{{},{3,4}}]:add(expand[{{},{3,4}}])
+         
+  refined_box = refined_box --+ real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
 --  local score, recognition = torch.max(conf,3)
 net:float()

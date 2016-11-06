@@ -1,4 +1,4 @@
-require 'nn'
+--require 'nn'
 require 'cudnn'
 require 'cunn'
 require 'loadcaffe'
@@ -106,7 +106,9 @@ mul = mul or false
 local net = nn.Sequential()
 local base_name = 'vgg'
 local base = base_load(base_name)
-base:float() ; cudnn.convert(base,nn)
+--base:float() ; 
+cudnn.convert(base,nn)
+base.accParameters = function() end
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
 local perm_order = torch.randperm(4096)
@@ -191,7 +193,7 @@ local ss = nn.Sequential()
 local cmul = nn.CMul(1,512,1,1)
 cmul.weight:fill(20)
 if ch==true then ss:add(nn.ChannelNormalization(2)) end
-if mul==true then ss:add(cmul) print('cmul!')end--ss:add(nn.Mul_modified(512,20)) end--nn.Mul():init('weight',nninit.constant,20))
+if mul==true then ss:add(cmul) end--ss:add(nn.Mul_modified(512,20)) end--nn.Mul():init('weight',nninit.constant,20))
 concat1:add(ss)--cudnn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1))
 -- 4_3
 
