@@ -136,6 +136,7 @@ whcxy[{{2}}] = xy[{{4}}] -xy[{{2}}]
 whcxy[{{3}}] = (xy[{{3}}]+xy[{{1}}])/2
 whcxy[{{4}}] = (xy[{{4}}]+xy[{{2}}])/2
 
+if prior_clip == true then whcxy:clamp(0,1) end
 
 return whcxy
 end

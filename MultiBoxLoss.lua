@@ -98,11 +98,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
 
   L1loss = nil;
-  input2 = nil ;
+--  input2 = nil ;
   target2:float();
-  
+  input:float()
     dl_dx_conf = CrossEntropy:backward((input1):cuda(),target1:cuda()):float()
-  input1 = nil;
+--  input1 = nil;
+  input1:float()
   target1:float();
   CrossEntropy = nil
 
@@ -112,15 +113,15 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 
   dl_dx_loc = wo2bat(dl_dx_loc,batch)
   dl_dx_conf = wo2bat(dl_dx_conf,batch)
-
+--   if loss_loc == math.huge then
+--print(target[2][{{1,4},{},{1,4}}],--input[{{1,4},{22,25},{1,4}}],
+--torch.sum(torch.eq(target[2],math.huge)))
+--    end
+  
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
   local n = math.max(positive_num+negative_num,1) ; --if n ==0 then n =1; print('n ==0')end 
-  --print(match_num,'<=',positive_num+negative_num)
-  --print('p, n',positive_num,negative_num) 
   local accuracy = match_num*100
-  --print('accuracy :', accuracy)--positive_num*100)  
   collectgarbage();
---  print(loss_conf,loss_loc)
   assert(match_num<=positive_num+negative_num, 'wrong match_num '..match_num..' '..positive_num.. ' '..negative_num)
   return (loss_conf+loss_loc), dl_dx,n, accuracy
 
