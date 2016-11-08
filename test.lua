@@ -124,7 +124,7 @@ net:float()
     detection_box =detection_box[index:expandAs(detection_box)]
     detection_box = detection_box:view(-1,4)
 
-    local detection_score = conf_image_class[index]:squeeze()
+    local detection_score = conf_image_class[index]:view(-1)
     res.image_name = image_name
     
     --nms

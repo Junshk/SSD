@@ -23,7 +23,7 @@ end
 
 function num2class(num ) return Class[num] end
 -----------------------------------------------------------
-
+--[[
 function jaccard(anno1,anno2)
 
 local xmin, xmax = torch.cmax(anno1[{{1}}],anno2[{{1}}]), torch.cmin(anno1[{{3}}],anno2[{{3}}])
@@ -37,7 +37,7 @@ return I:cdiv(U)
 end
 
 --end
-
+]]--
 -----------------------------------------------------------
 function jaccard_matrix(tensor,gt) 
 if tensor:dim() ==4 then
@@ -48,10 +48,11 @@ local expandGt = gt:expandAs(tensor) -- 4 by ~
 
 local xdelta = torch.cmin(tensor[{{3}}],expandGt[{{3}}])-
 torch.cmax(tensor[{{1}}],expandGt[{{1}}])
-local ydelta = torch.cmax(tensor[{{4}}],expandGt[{{4}}])-
+local ydelta = torch.cmin(tensor[{{4}}],expandGt[{{4}}])-
 torch.cmax(tensor[{{2}}],expandGt[{{2}}])
-
-local I = xdelta:cmul(ydelta)
+xdelta:cmax(0)
+ydelta:cmax(0)
+local I = torch.cmul(xdelta,ydelta)
 
 local tensor_size = tensor:size(); tensor_size[1]=1
 local tensor_element = torch.numel(tensor[{{1}}])
@@ -97,7 +98,7 @@ end
 -- The authors of SSD use cuda to solve nms more faster 
 
 function nms(boxes_mm, overlap, scores,image_size) -- adjusted
-
+--print(torch.max(scores))
   boxes_mm = boxes_mm:float(); 
  
   local pick = torch.LongTensor()
@@ -142,7 +143,7 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   local ymax = boxes_mm[{{},{4}}]
   ymax = torch.cmin(ymax:expand(box_num,box_num),ymax:t():expand(box_num,box_num))
   local ymin = boxes_mm[{{},{2}}]
-  ymax:csub(torch.cma(ymin:expand(box_num,box_num),ymin:t():expand(box_num,box_num)))
+  ymax:csub(torch.cmax(ymin:expand(box_num,box_num),ymin:t():expand(box_num,box_num)))
 
 
    local a3 =sys.clock()
@@ -216,5 +217,6 @@ end
 --print(pick)
    boxes_mm = boxes_mm:index(1,pick)
    scores = scores:index(1,pick)
+--   print(torch.max(scores))
    return boxes_mm, scores
 end
