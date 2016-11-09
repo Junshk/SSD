@@ -108,7 +108,6 @@ local base_name = 'vgg'
 local base = base_load(base_name)
 --base:float() ; 
 cudnn.convert(base,nn)
-base.accParameters = function() end
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
 local perm_order = torch.randperm(4096)
