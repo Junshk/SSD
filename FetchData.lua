@@ -9,7 +9,7 @@ torch.setnumthreads(2)
 --------------------------------------------
 --------------------------------------------------------------
 function augment(img,anno_class)
-
+math.randomseed(sys.clock())
 -- choose aug type
 ::otherOpt::
 local anno = anno_class[{{1,4},{}}]:clone()
@@ -47,7 +47,7 @@ end
     if augType ==2 then 
     else
     repeat 
-      if idx>30 then goto otherOpt end   
+      if idx>45 then goto otherOpt end   
     
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
@@ -124,7 +124,7 @@ return aug_img, anno, class
 end
 
 function dataload(ImgInfo) -- with normalize
-math.randomseed(sys.clock())
+math.randomseed(os.time())
 ::re::
 --print('dataload')
 local fetchNum = math.random(1,#ImgInfo) 
@@ -192,7 +192,11 @@ function make_default_anno(anno,class)--/////////////////// input cxy
 local anno_default = prior_whcxy:clone()
 local class_default = torch.Tensor(1,20097):fill(21)
 
+
 local anno_n = anno:size(2)
+local perm = torch.randperm(anno_n):long()
+anno = anno:index(2,perm)
+class = class:index(2,perm)
 
 for iter = 1, anno_n do
 
