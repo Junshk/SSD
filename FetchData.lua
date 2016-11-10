@@ -47,7 +47,7 @@ end
     if augType ==2 then 
     else
     repeat 
-      if idx>45 then goto otherOpt end   
+      if idx>50 then goto otherOpt end   
     
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
