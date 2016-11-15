@@ -15,7 +15,7 @@ local function ConvInit(dim1,dim2,k,s,p)
 local k = k or 3
 local s = s or 1
 local p = p or math.floor(k/2)
-return nn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nn.xavier):init('bias',nn.constant,0)
+return nn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nninit.xavier):init('bias',nninit.constant,0)
 end
 -------------------------------------------------------------------------------
 local function base_load(base_name)
