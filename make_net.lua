@@ -11,6 +11,12 @@ cudnn.benchmark = true
 
 local nninit = require 'nninit'
 
+local function ConvInit(dim1,dim2,k,s,p)
+local k = k or 3
+local s = s or 1
+local p = p or math.floor(k/2)
+return nn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nn.xavier):init('bias',nn.constant,0)
+end
 -------------------------------------------------------------------------------
 local function base_load(base_name)
 
@@ -48,9 +54,9 @@ local reshape = nn.ParallelTable()
 local dim ={256,256,256,256,512,1024,512}
   
 for iter_loc = 1, 6 do 
-parl:add(nn.SpatialConvolution(dim[iter_loc],4*6,3,3,1,1,1,1):init('weight',nninit.xavier))
+parl:add(ConvInit(dim[iter_loc],4*6))
 end
-parl:add(nn.SpatialConvolution(dim[7],4*3,3,3,1,1,1,1):init('weight',nninit.xavier))
+parl:add(ConvInit(dim[7],4*3))
 
 reshape:add(nn.Reshape(4,6*1))
 reshape:add(nn.Reshape(4,6*2*2))
@@ -77,9 +83,9 @@ local reshape = nn.ParallelTable()
 local confnet = nn.Sequential()
   
 for iter_conf = 1, 6 do 
-parl:add(nn.SpatialConvolution(dim[iter_conf],classes*6,3,3,1,1,1,1):init('weight',nninit.xavier))
+parl:add(ConvInit(dim[iter_conf],classes*6))
 end
-parl:add(nn.SpatialConvolution(dim[7],classes*3,3,3,1,1,1,1):init('weight',nninit.xavier))
+parl:add(ConvInit(dim[7],classes*3))
 
 reshape:add(nn.Reshape(classes,6*1))
 reshape:add(nn.Reshape(classes,6*2*2))
@@ -110,6 +116,8 @@ local base = base_load(base_name)
 cudnn.convert(base,nn)
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
+--local bias_of_fc6 = base.modules[33].bias
+
 local perm_order = torch.randperm(4096)
 perm_order = perm_order[{{1,1024}}]
 local sample = torch.Tensor({1,4,7}):long()
@@ -123,11 +131,18 @@ weight_of_fc6 = weight_of_fc6:transpose(3,4)
 weight_of_fc6 = weight_of_fc6:transpose(2,3)
 weight_of_fc6 = weight_of_fc6:transpose(1,2)
 
+--bias_of_fc6 = bias_of_fc6:index(1,perm_order:long())
+
 local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1)
 weight_of_fc7 = weight_of_fc7:index(1,perm_order:long())
 weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
 weight_of_fc7 = weight_of_fc7:transpose(1,2)
 
+--local bias_of_fc7 = base.modules[36].bias:reshape(1024,4,1)
+--bias_of_fc7 = bias_of_fc7:index(1,perm_order:long())
+--bias_of_fc7 = bias_of_fc7[{{},{1},{}}]
+
+--bias_of_fc7 = bias_of_fc7:squeeze()
 -----------------------------
 
 if base_name == 'vgg' then
@@ -143,34 +158,34 @@ local seq5, concat6 = nn.Sequential(), nn.ConcatTable()
 concat6:add(nn.SpatialAveragePooling(2,2))
 concat6:add(nn.Identity())
 
-seq5:add(nn.SpatialConvolution(256,128,1,1):init('weight',nninit.xavier))
+seq5:add(ConvInit(256,128,1))
 seq5:add(nn.ReLU(true))
-seq5:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq5:add(ConvInit(128,256,3,2))
 seq5:add(nn.ReLU(true))
 seq5:add(concat6)
 concat5:add(seq5)
 concat5:add(nn.Identity())
 
 
-seq4:add(nn.SpatialConvolution(256,128,1,1):init('weight',nninit.xavier))
+seq4:add(ConvInit(256,128,1))
 seq4:add(nn.ReLU(true))
-seq4:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq4:add(ConvInit(128,256,3,2))
 seq4:add(nn.ReLU(true))
 seq4:add(concat5)
 concat4:add(seq4)
 concat4:add(nn.Identity())
 
-seq3:add(nn.SpatialConvolution(512,128,1,1):init('weight',nninit.xavier))
+seq3:add(ConvInit(512,128,1))
 seq3:add(nn.ReLU(true))
-seq3:add(nn.SpatialConvolution(128,256,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq3:add(ConvInit(128,256,3,2))
 seq3:add(nn.ReLU(true))
 seq3:add(concat4)
 concat3:add(seq3)
 concat3:add(nn.Identity())
 
-seq2:add(nn.SpatialConvolution(1024,256,1,1):init('weight',nninit.xavier))
+seq2:add(ConvInit(1024,256,1))
 seq2:add(nn.ReLU(true))
-seq2:add(nn.SpatialConvolution(256,512,3,3,2,2,1,1):init('weight',nninit.xavier))
+seq2:add(ConvInit(256,512,3,2))
 seq2:add(nn.ReLU(true))
 seq2:add(concat3)
 concat2:add(seq2)
@@ -183,8 +198,8 @@ seq1:add(base.modules[iter])
 end
 seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
 
-seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6))  -- subsampling fc 6
-seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7)) -- subsampling fc 7
+seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.constant,0))  -- subsampling fc 6
+seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.constant,0)) -- subsampling fc 7
 seq1:add(concat2)
 
 concat1:add(seq1)
