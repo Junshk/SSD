@@ -9,7 +9,7 @@ torch.setnumthreads(2)
 --------------------------------------------
 --------------------------------------------------------------
 function augment(img,anno_class)
-math.randomseed(sys.clock())
+math.randomseed(os.time())
 -- choose aug type
 ::otherOpt::
 local anno = anno_class[{{1,4},{}}]:clone()
@@ -48,7 +48,7 @@ end
     else
     repeat 
       if idx>50 then goto otherOpt end   
-    
+        math.randomseed(sys.clock()*10) 
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
 
@@ -198,6 +198,9 @@ local perm = torch.randperm(anno_n):long()
 anno = anno:index(2,perm)
 class = class:index(2,perm)
 
+local iou_annos = torch.Tensor(anno_n,20097):fill(0)
+local unused = torch.LongTensor(20097):fill(1)
+
 for iter = 1, anno_n do
 
   local gt_xymm = torch.Tensor(4,1);
@@ -207,16 +210,34 @@ for iter = 1, anno_n do
   gt_xymm[{3}]= anno[{{1},{iter}}]/2 + anno[{{3},{iter}}]
   gt_xymm[{4}]= anno[{{2},{iter}}]/2 + anno[{{4},{iter}}]
    
-  local gt_class =class[{{1},{iter}}]:squeeze()
+  --local gt_class =class[{{1},{iter}}]:squeeze()
 
-  local matching = matching_gt_matrix(gt_xymm,500)---// xymm
+  iou_annos[{iter}] = matching_gt_matrix(gt_xymm,500,true)---// xymm
 
-  assert(gt_class<21 and gt_class >=1 ,'wrong class labeling '..gt_class)
+  --assert(gt_class<21 and gt_class >=1 ,'wrong class labeling '..gt_class)
   assert(torch.sum(torch.eq(anno[{{2},{iter}}],0))==0)
+end
 
+-- max
+for iter = 1, anno_n do
+  local v,id =torch.max(torch.cmul(iou_annos[iter],unused))
+  anno_default[id] = anno[iter]
+  class_default[id] = class[iter]
+  unused[id] = 0 
+end
+
+-- rest
+local v, id = torch.max(iou_annos,1)
+local background = torch.lt(v,0.5)
+usused:cmul(background)
+anno_default[unused:view(1,-1):expand(anno_default)] = anno:index(1,id[unused])
+class_default[unused] = class:index(1,id[unused])
+--[[
   local expand_num = torch.sum(matching)
   anno_default[matching:expand(4,20097)] = anno[{{1,4},{iter}}]:expand(4,expand_num)---not perfect when overlap exist
   class_default[matching] = gt_class
+]]--
+
 end
 
 return anno_default, class_default 
