@@ -1,4 +1,4 @@
-function viewdet(id,cls,onlytp)
+function viewdet(VOCopts,id,cls,onlytp)
 
 if nargin<2
     error(['usage: viewdet(competition,class,onlytp) e.g. viewdet(''comp3'',''car'') or ' ...
@@ -13,7 +13,7 @@ end
 addpath([cd '/VOCcode']);
 
 % initialize VOC options
-VOCinit;
+%VOCinit;
 
 % load test set
 cp=sprintf(VOCopts.annocachepath,VOCopts.testset);

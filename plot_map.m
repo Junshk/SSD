@@ -19,7 +19,7 @@ for j = 1:length(folder)
 
         class = VOCopts.classes{i};
         VOCevaldet(VOCopts, folder_,class,true );
-        viewdet(VOCopts,folder_ ,class,true)
+        viewdet(VOCopts,folder_ ,class,false)
     end
 end
 
