@@ -3,7 +3,7 @@ require 'cudnn'
 require 'cunn'
 require 'loadcaffe'
 require 'modules/ChannelNormalization'
-
+require 'nnlr'
 
 
 cudnn.fastest = true
@@ -15,7 +15,7 @@ local function ConvInit(dim1,dim2,k,s,p)
 local k = k or 3
 local s = s or 1
 local p = p or math.floor(k/2)
-return nn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nninit.xavier):init('bias',nninit.constant,0)
+return nn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nninit.xavier):init('bias',nninit.constant,0):learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)
 end
 -------------------------------------------------------------------------------
 local function base_load(base_name)
@@ -103,7 +103,22 @@ reshape:add(nn.Reshape(classes,3*63*63))
 return confnet
 end
 
+function pretrain(net,base)
 
+for iter = 1, 23 do
+
+if base.modules[iter].weight ~= nil then
+  if iter >= 1 and iter <=9 then 
+  base.modules[iter]:learningRate('weight',0):learningRate('bias',0):weightDecay('weight',0):weightDecay('bias',0)
+  else base.modules[iter]:learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)
+  end
+end
+--cal conv = base.modules[iter]:clone('weight','bias')
+net:add(base.modules[iter])
+
+end
+
+end
 -------------------------------------------------------------------------------
 
 function make_net(ch,mul)
@@ -114,6 +129,7 @@ local base_name = 'vgg'
 local base = base_load(base_name)
 --base:float() ; 
 cudnn.convert(base,nn)
+--base.accGradParameters = function() end
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
 --local bias_of_fc6 = base.modules[33].bias
@@ -204,16 +220,12 @@ seq1:add(concat2)
 
 concat1:add(seq1)
 local ss = nn.Sequential()
-local cmul = nn.CMul(1,512,1,1)
-cmul.weight:fill(20)
-if ch==true then ss:add(nn.ChannelNormalization(2)) end
-if mul==true then ss:add(cmul) end--ss:add(nn.Mul_modified(512,20)) end--nn.Mul():init('weight',nninit.constant,20))
-concat1:add(ss)--cudnn.SpatialConvolution(512,3*(classes+4),3,3,1,1,1,1))
--- 4_3
+local cmul = nn.CMul(1,512,1,1):init('weight',nninit.constant,20)
+if ch==true then ss:add(nn.ChannelNormalization(2,0)) end
+if mul==true then ss:add(cmul) end
 
-for iter = 1, 23 do
-net:add(base.modules[iter])
-end
+concat1:add(ss)
+pretrain(net,base)
 net:add(concat1)
 
 net:add(nn.FlattenTable())
@@ -248,4 +260,5 @@ net = cudnn.convert(net,cudnn):cuda()
 return net
 
 end
-cudnn.fastest = true
+--cudnn.fastest = true
+
