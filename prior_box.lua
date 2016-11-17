@@ -89,18 +89,25 @@ if img_size ~=nil then div = img_size end
 return {t7/img_size, t6 /img_size,t5/img_size, t4/img_size, t3/img_size ,t2/img_size, t1/img_size}
 end
 
-function matching_gt_matrix(gt,img_size) -- xmin, ymin, xmax, ymax
+function matching_gt_matrix(gt,img_size,iou) -- xmin, ymin, xmax, ymax
 
 local box_size = total_box(img_size) --ratio
 
 local size_default = 20097
 local matched ={}
 local match_tensor =torch.ByteTensor(1,size_default)
-
+if iou == true then match_tensor = torch.Tensor(1,size_default)end
 local idx =1
 
 for iter = 1, #box_size do
-local matching_for_tensor = torch.gt(jaccard_matrix(box_size[iter],gt),0.5)
+local matching_for_tensor 
+if iou == false then
+  matching_for_tensor = torch.gt(jaccard_matrix(box_size[iter],gt),0.5)
+elseif iou == true then 
+--print(box_size[iter])
+  matching_for_tensor = jaccard_matrix(box_size[iter],gt)
+--print(matching_for_tensor)
+end
 
 local element = torch.numel(matching_for_tensor)
 
@@ -130,7 +137,7 @@ xy[{{},{idx,idx+element-1}}] = t
 idx =idx+ element
 end
 
-
+xy:clamp(0,1)
 whcxy[{{1}}] =xy[{{3}}]-xy[{{1}}]
 whcxy[{{2}}] = xy[{{4}}] -xy[{{2}}]
 whcxy[{{3}}] = (xy[{{3}}]+xy[{{1}}])/2
