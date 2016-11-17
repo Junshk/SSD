@@ -11,7 +11,7 @@ parent.__init(self)
 assert(p, 'p-norm not provided')
 assert(p > 0, p..'-norm not supported')
 self.p =p
-self.eps = eps or 1e-30
+self.eps = eps or 1e-10
 
 end
 
@@ -33,10 +33,10 @@ self._repeat = self._repeat or input.new()
 self._expand = self._expand or input.new()
 self._output:resizeAs(input)
 
-self.norm:norm(input,self.p,featureDim)
+self.norm:norm(input+self.eps,self.p,featureDim)
 --self.norm = torch.norm(input,self.p,featureDim)
 
-self.norm:add(self.eps)
+--self.norm:add(self.eps)
 
 self._expand:expandAs(self.norm,self._output)
 
@@ -77,10 +77,10 @@ if self.p ~= 2 then
   
   assert(nil,'not yet provided')
 elseif self.p ==2 then
-self.buffer:add(self.norm:expandAs(input),1)
-    self.buffer:cinv()
-    self.buffer2:pow(self.norm:expandAs(input),-3/2)
-self.buffer2:cmul(input/2)
+self.buffer:pow(self.norm:expandAs(input),-1)--add(self.norm:expandAs(input),1)
+    --self.buffer:cinv()
+    self.buffer2:pow(self.norm:expandAs(input),-3)
+self.buffer2:cmul(input):cmul(input)
     else
 end
 
