@@ -132,7 +132,7 @@ cudnn.convert(base,nn)
 --base.accGradParameters = function() end
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
---local bias_of_fc6 = base.modules[33].bias
+local bias_of_fc6 = base.modules[33].bias
 
 local perm_order = torch.randperm(4096)
 perm_order = perm_order[{{1,1024}}]
@@ -147,18 +147,18 @@ weight_of_fc6 = weight_of_fc6:transpose(3,4)
 weight_of_fc6 = weight_of_fc6:transpose(2,3)
 weight_of_fc6 = weight_of_fc6:transpose(1,2)
 
---bias_of_fc6 = bias_of_fc6:index(1,perm_order:long())
+bias_of_fc6 = bias_of_fc6:index(1,perm_order:long())
 
 local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1)
 weight_of_fc7 = weight_of_fc7:index(1,perm_order:long())
 weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
 weight_of_fc7 = weight_of_fc7:transpose(1,2)
 
---local bias_of_fc7 = base.modules[36].bias:reshape(1024,4,1)
---bias_of_fc7 = bias_of_fc7:index(1,perm_order:long())
---bias_of_fc7 = bias_of_fc7[{{},{1},{}}]
+local bias_of_fc7 = base.modules[36].bias:reshape(1024,4,1)
+bias_of_fc7 = bias_of_fc7:index(1,perm_order:long())
+bias_of_fc7 = bias_of_fc7[{{},{1},{}}]
 
---bias_of_fc7 = bias_of_fc7:squeeze()
+bias_of_fc7 = bias_of_fc7:squeeze()
 -----------------------------
 
 if base_name == 'vgg' then
@@ -213,15 +213,16 @@ for iter = 24, 30 do
 seq1:add(base.modules[iter])
 end
 seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
-
-seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.constant,0))  -- subsampling fc 6
-seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.constant,0)) -- subsampling fc 7
+bias_of_fc6:fill(0)
+bias_of_fc7:fill(0)
+seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.copy,bias_of_fc6):learningRate('bias',2):weightDecay('bias',0))  -- subsampling fc 6
+seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.copy,bias_of_fc7):learningRate('bias',2):weightDecay('bias',0)) -- subsampling fc 7
 seq1:add(concat2)
 
 concat1:add(seq1)
 local ss = nn.Sequential()
 local cmul = nn.CMul(1,512,1,1):init('weight',nninit.constant,20)
-if ch==true then ss:add(nn.ChannelNormalization(2,0)) end
+if ch==true then ss:add(nn.ChannelNormalization(2)) end
 if mul==true then ss:add(cmul) end
 
 concat1:add(ss)

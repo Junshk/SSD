@@ -48,16 +48,16 @@ opt.cont =false end
 
 print(opt)
 net:training()
-net:cuda()
+--net:cuda()
 print(net)
 print('training')
 
-local img_Info_table = ImgInfo()
+local img_Info_table = ImgInfo()--trainInfo()--ImgInfo()
 
 local params, grads = net:getParameters()
 
 local feval = function(x)
-
+::retrain::
 if x ~= params then
         params:copy(x)
         end
@@ -71,20 +71,25 @@ grads:zero()
 local f =0
 local acc =0
 local boxN =0
+local PN =0
+local acc_n =0
 
 for iter = 1, multi_batch do
 local input, target = patchFetch(batch_size,img_Info_table) --imgtensor, table
-
+assert(torch.sum(torch.ne(input,input))==0 , 'nan in input')
 local output = net:forward(input:cuda())
 input:float()
 
 -----------------------------------
+assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
 
-local err, df_dx,N, accuracy = MultiBoxLoss(output:float(),target,opt.lambda)
+local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output:float(),target,opt.lambda)
+--N =nN+pN
+--PN =PN+pN
 f = f+ err
 boxN = boxN +N
 acc = acc +accuracy
-
+acc_n = acc_n +accuracy_n
 ------------------------------------
 net:backward(input:cuda(),df_dx:cuda())
 
@@ -92,7 +97,8 @@ net:backward(input:cuda(),df_dx:cuda())
 end
 --input = nil; df_dx = nil;
 --target =nil;
-table.insert(accuracies,acc/boxN)
+if boxN ==0 then goto retrain end
+table.insert(accuracies,acc/math.max(acc_n,1))--boxN)
 f = f/ boxN
 grads:div(boxN)
 
@@ -100,17 +106,21 @@ collectgarbage();
 return f, grads
 end -- end local feval
 -------------------------------------------
-
-
 for iteration = start_iter,opt.end_iter do
   
   if iteration == 60*1000 then optimState.learningRate = 1e-4 end
   local _, loss = optim.sgd(feval,params,optimState)
-  table.insert(losses,loss[1])
-   if iteration % opt.print_iter ==0 then 
+    if iteration % opt.print_iter ==0 then 
         print('iter',iteration,'loss ',loss[1],'acc',accuracies[#accuracies])
 
   end
+   if opt.valid ==true and iteration%opt.test_iter ==0 then
+        local folder_ = 'validation/'..netname..'/valid_loss_'..iteration
+         if paths.dirp(folder_) ==true then  os.execute('rm -r '..folder_) end
+         validation(net,'valid_loss_'..iteration,netname)   
+  end
+
+table.insert(losses,loss[1])
 
  if iteration % opt.save_iter ==0 then 
         net:clearState()
@@ -126,14 +136,14 @@ for iteration = start_iter,opt.end_iter do
    end
 
 
-  if opt.valid ==true and iteration%opt.test_iter ==0 then
-         validation(net,'valid_loss_'..iteration,opt.netname)   
-  end
-
   if iteration%opt.plot_iter ==0 then
     local start_num, end_num = 
     math.max(1,iteration-opt.plot_iter*100), iteration
+    gnuplot.figure(1)
     gnuplot.plot({netname..'loss',torch.range(start_num,end_num),torch.Tensor(losses)[{{start_num,end_num}}],'-'})
+    
+    gnuplot.figure(2)
+    gnuplot.plot({netname..'acc',torch.range(1,#accuracies),torch.Tensor(accuracies),'-'})
   end
 
   

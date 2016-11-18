@@ -39,7 +39,7 @@ end
 --end
 ]]--
 -----------------------------------------------------------
-function jaccard_matrix(tensor,gt) 
+function jaccard_matrix(tensor,gt) --xmin ymin xmax ymax 
 if tensor:dim() ==4 then
 gt:resize(4,1,1,1)
 end
@@ -55,9 +55,9 @@ ydelta:cmax(0)
 local I = torch.cmul(xdelta,ydelta)
 
 local tensor_size = tensor:size(); tensor_size[1]=1
-local tensor_element = torch.numel(tensor[{{1}}])
-local t_t = (tensor[{{3}}]-tensor[{{1}}]):reshape(tensor_element)
-t_t:cmul(tensor[{{4}}]-tensor[{{2}}]:reshape(tensor_element))
+--local tensor_element = torch.numel(tensor[{{1}}])
+local t_t = (tensor[{{3}}]-tensor[{{1}}])
+t_t:cmul((tensor[{{4}}]-tensor[{{2}}]))
 
 gt=gt:squeeze()
 local U =t_t:reshape(tensor_size)+(gt[{{3}}]-gt[{{1}}])*(gt[{{4}}]-gt[{{2}}]) - I
@@ -114,9 +114,7 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   local a1 = sys.clock()
   
   boxes_mm = boxes_mm:cuda()
---  local w_2 = boxes_mm[{{},{1}}]:div(2)
---  local h_2 = boxes_mm[{{},{2}}]:div(2)
-  
+ 
   boxes_mm[{{},{3}}]:add(1/2,boxes_mm[{{},{1}}])
   boxes_mm[{{}, {4}}]:add(1/2,boxes_mm[{{},{2}}])--h_2) 
 --  boxes_mm[{{},{1,2}}]:copy(boxes_mm[{{},{3,4}}])
@@ -150,14 +148,14 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
    
  
   local inter = torch.cmul(ymax,xmax)
-
-  local IOU = torch.cdiv(inter,S:expand(box_num,box_num)+S:t():expand(box_num,box_num)-inter)
-
-
+  ymax = nil ; xmax = nil;
+  inter:cdiv(S:expand(box_num,box_num)+S:t():expand(box_num,box_num)-inter)
+  local IOU = inter
+   h =nil; 
   
  
   scores = scores:cuda()
-local   v, Order = scores:sort(1)
+  local   v, Order = scores:sort(1)
   Order=Order:long()
 
 
@@ -208,15 +206,18 @@ end
   -- remove wrong box
   S = S:float()
   pick = pick[torch.ne(S:index(1,pick),0)]
---  print(pick:size())
+
   local a6 =sys.clock()
---  print(a6-a5,a5-a4,a4-a3,a3-a2,a2-a1)
   
+  if pick:numel() == 0 then return pick end
+
+  S = nil;
   boxes_mm = boxes_mm:float()
   scores = scores:float()
---print(pick)
+
    boxes_mm = boxes_mm:index(1,pick)
    scores = scores:index(1,pick)
---   print(torch.max(scores))
+   
+   collectgarbage()
    return boxes_mm, scores
 end

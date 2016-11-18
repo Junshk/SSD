@@ -3,8 +3,48 @@ torch.setdefaulttensortype('torch.FloatTensor')
 
 local xml = require 'xml'
 
+function trainInfo()
+local list = {}
+local t2012 = 'VOCdevkit/VOC2012/ImageSets/Main/trainval.txt'
+local t2007 = 'VOCdevkit/VOC2007/ImageSets/Main/trainval.txt'
 
 
+local f = assert(io.open(t2012,'r'))
+
+io.input(f)
+while true do
+  local img ={}
+  local line = io.read()
+  if line ==nil then break end
+   
+    name =  line..'.jpg'
+    table.insert(list,{path='VOCdevkit/VOC2012/',image_name = name})
+
+end
+
+ f = assert(io.open(t2007,'r'))
+
+io.input(f)
+while true do
+  local img ={}
+  local line = io.read()
+  if line ==nil then break end
+    
+    name =  line..'.jpg'
+    table.insert(list,{path='VOCdevkit/VOC2007/',image_name = name})
+
+end
+
+
+
+
+
+
+
+
+
+return list
+end
 function ImgInfo(folder)
 
 local Info = {}
@@ -47,8 +87,8 @@ local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
 		data.folder[idx] = folder
 		data.imgname[idx] = imgname
 		data.image[idx] = image.load(path .. '/JPEGImages/' .. imgname .. '.jpg')
-		data.image[idx] = (data.image[idx]*255):byte()
-		data.object[idx] = {}
+		data.image[idx] = (data.image[idx]*255)
+    data.object[idx] = {}
 		
 		local iObject = 0
 		for _,item in pairs(annot) do

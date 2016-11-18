@@ -9,7 +9,7 @@ torch.setnumthreads(2)
 --------------------------------------------
 --------------------------------------------------------------
 function augment(img,anno_class)
-math.randomseed(os.time())
+math.randomseed(sys.clock())--os.time())
 -- choose aug type
 ::otherOpt::
 local anno = anno_class[{{1,4},{}}]:clone()
@@ -25,9 +25,9 @@ local function new_patch()
   
   local crop_size = math.pow(0.1,math.random())
   local aspect = math.pow(2,math.random(-1,1))
-  local crop_w, crop_h = math.min(math.floor(crop_size*math.sqrt(aspect)*w),w), 
-                     math.min(math.floor(crop_size*math.sqrt(1/aspect)*h),h)
-  local  crop_sx ,crop_sy = math.random(1,w-crop_w+1), math.random(1,h-crop_h+1)
+  local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w),--math.min(math.floor(crop_size*math.sqrt(aspect)*w),w), 
+                     math.floor(crop_size*math.sqrt(1/aspect)*h)--math.min(math.floor(crop_size*math.sqrt(1/aspect)*h),h)
+  local  crop_sx ,crop_sy = math.random(1,math.max(w-crop_w+1,1)), math.random(1,math.max(h-crop_h+1,1))
   --math.ceil(w/2-math.random(1,math.floor(crop_w/2))),
   --math.ceil(h/2-math.random(1,math.floor(crop_h/2)))
    
@@ -47,8 +47,8 @@ end
     if augType ==2 then 
     else
     repeat 
-      if idx>50 then goto otherOpt end   
-        math.randomseed(sys.clock()*10) 
+    if idx>50 then goto otherOpt end   
+        --math.randomseed(sys.clock()*10) 
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
 
@@ -70,9 +70,17 @@ end
 
       anno[{{3}}] = (anno[{{3}}]- crop_sx+1)--*ratio_width
       anno[{{4}}] = (anno[{{4}}]- crop_sy+1)--*ratio_height
-      crop_w = math.min(w- crop_sx,crop_w)
-      crop_h = math.min(h- crop_sy,crop_h)
-      aug_img = image.crop(img,crop_sx,crop_sy,crop_sx+crop_w,crop_sy+crop_h)
+      local r_crop_w = math.min(w- crop_sx,crop_w)
+      local r_crop_h = math.min(h- crop_sy,crop_h)
+      aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
+      if chm == false then 
+        aug_img[{{1}}]:fill(104)
+        aug_img[{{2}}]:fill(117)
+        aug_img[{{3}}]:fill(123)
+      end  
+      aug_img:div(norm)
+      
+      aug_img[{{},{1,r_crop_h},{1,r_crop_w}}] = image.crop(img,crop_sx,crop_sy,crop_sx+r_crop_w,crop_sy+r_crop_h)
 
   end
 
@@ -116,8 +124,8 @@ anno[{{4}}]:div(aug_img:size(2))
 
 aug_img = image.scale(aug_img,500,500)
 
-
-
+--print('img max v',torch.max(torch.abs(aug_img)))
+--print(augType)
 return aug_img, anno, class
  
 
@@ -156,17 +164,23 @@ anno_class[{{5},{iter}}] = class
 end
 
 ---input normalize
+if chm == true then
+img[{{1}}]=img[{{1}}]:csub(123)
+img[{{2}}]=img[{{2}}]:csub(117)
+img[{{3}}]=img[{{3}}]:csub(104)
+--print(img)
+end
 if bgr == true then
 local vgg_img = torch.Tensor(img:size())
 
-vgg_img[{{3}}] = (img[{{1}}]:float()-123)
-vgg_img[{{2}}] = (img[{{2}}]:float()-117)
-vgg_img[{{1}}] = (img[{{3}}]:float()-104)
+vgg_img[{{3}}] = (img[{{1}}])--:float())
+vgg_img[{{2}}] = (img[{{2}}])--:float())
+vgg_img[{{1}}] = (img[{{3}}])--:float())
 img =vgg_img
 elseif bgr ==false then
-img[{{1}}] = (img[{{1}}]:float()-123)
-img[{{2}}] = (img[{{2}}]:float()-117)
-img[{{3}}] = (img[{{3}}]:float()-104)
+--img[{{1}}] = (img[{{1}}]:float())
+--img[{{2}}] = (img[{{2}}]:float())
+--img[{{3}}] = (img[{{3}}]:float())
 end
 ---
 
@@ -199,7 +213,7 @@ anno = anno:index(2,perm)
 class = class:index(2,perm)
 
 local iou_annos = torch.Tensor(anno_n,20097):fill(0)
-local unused = torch.LongTensor(20097):fill(1)
+local unused = torch.ByteTensor(20097):fill(1)
 
 for iter = 1, anno_n do
 
@@ -210,35 +224,43 @@ for iter = 1, anno_n do
   gt_xymm[{3}]= anno[{{1},{iter}}]/2 + anno[{{3},{iter}}]
   gt_xymm[{4}]= anno[{{2},{iter}}]/2 + anno[{{4},{iter}}]
    
-  --local gt_class =class[{{1},{iter}}]:squeeze()
-
-  iou_annos[{iter}] = matching_gt_matrix(gt_xymm,500,true)---// xymm
-
+    iou_annos[{iter}] = matching_gt_matrix(gt_xymm,500,true)---// xymm
+  --print(torch.sum(iou_annos[iter]))
   --assert(gt_class<21 and gt_class >=1 ,'wrong class labeling '..gt_class)
   assert(torch.sum(torch.eq(anno[{{2},{iter}}],0))==0)
 end
 
 -- max
 for iter = 1, anno_n do
-  local v,id =torch.max(torch.cmul(iou_annos[iter],unused))
-  anno_default[id] = anno[iter]
-  class_default[id] = class[iter]
+  local iter_anno = torch.cmul(iou_annos[iter],unused:float())
+  local v,id =torch.max(iter_anno,1)
+ --print(id:squeeze(),iter_anno:size())
+  id = id:squeeze()
+  anno_default[{{},id}] = anno[{{},iter}]
+  class_default[{{},id}] = class[{{},iter}]
   unused[id] = 0 
 end
-
+--  local matching = matching_gt_matrix(gt_xymm,500)---// xymm
 -- rest
+--print(iou_annos)
 local v, id = torch.max(iou_annos,1)
-local background = torch.lt(v,0.5)
-usused:cmul(background)
-anno_default[unused:view(1,-1):expand(anno_default)] = anno:index(1,id[unused])
-class_default[unused] = class:index(1,id[unused])
+--print(torch.sum(unused))
+local foreground = torch.gt(v,0.5)
+unused:cmul(foreground)  
+id = id[unused]
+--print (id:size(),torch.sum(foreground))
+if id:numel()~= 0 then
+anno_default[unused:view(1,-1):expand(anno_default:size())] =
+anno:index(2,id:long())
+class_default[unused] = class:index(2,id)
+end
 --[[
   local expand_num = torch.sum(matching)
   anno_default[matching:expand(4,20097)] = anno[{{1,4},{iter}}]:expand(4,expand_num)---not perfect when overlap exist
   class_default[matching] = gt_class
 ]]--
 
-end
+--end
 
 return anno_default, class_default 
 end
