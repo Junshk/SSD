@@ -98,7 +98,10 @@ end
 -- The authors of SSD use cuda to solve nms more faster 
 
 function nms(boxes_mm, overlap, scores,image_size) -- adjusted
---print(torch.max(scores))
+
+
+  
+  ----- cuda calculate iou of all pair
   boxes_mm = boxes_mm:float(); 
  
   local pick = torch.LongTensor()
@@ -110,6 +113,7 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   boxes_mm = boxes_mm:view(-1,4)
 
   local box_num = boxes_mm:size(1)
+  local box_size = boxes_mm:size()
 
   local a1 = sys.clock()
   
@@ -117,10 +121,6 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
  
   boxes_mm[{{},{3}}]:add(1/2,boxes_mm[{{},{1}}])
   boxes_mm[{{}, {4}}]:add(1/2,boxes_mm[{{},{2}}])--h_2) 
---  boxes_mm[{{},{1,2}}]:copy(boxes_mm[{{},{3,4}}])
-  
---  boxes_mm[{{},{1}}]:csub(w_2)
---  boxes_mm[{{}, {2}}]:csub( h_2)
   boxes_mm[{{},{1}}]:add(boxes_mm[{{},{3}}],-1,boxes_mm[{{},{1}}])
   boxes_mm[{{},{2}}]:add(boxes_mm[{{},{4}}],-1,boxes_mm[{{},{2}}])
  
@@ -128,12 +128,13 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
 
   local S, h = torch.csub(boxes_mm[{{},{3}}],boxes_mm[{{},{1}}]), torch.csub(boxes_mm[{{},{4}}],boxes_mm[{{},{2}}])
   S:cmul(h) -- reuse
+  
+  --[[
   local xmax = boxes_mm[{{},{3}}]
   xmax= torch.cmin(xmax:expand(box_num,box_num),xmax:t():expand(box_num,box_num))
 
   local xmin = boxes_mm[{{},{1}}]
-  xmax:csub(torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num)))-- = torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num))
-
+  xmax:csub(torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num))) 
 
   
    local a2 = sys.clock()
@@ -151,25 +152,24 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   ymax = nil ; xmax = nil;
   inter:cdiv(S:expand(box_num,box_num)+S:t():expand(box_num,box_num)-inter)
   local IOU = inter
+   ]]--
    h =nil; 
   
  
-  scores = scores:cuda()
-  local   v, Order = scores:sort(1)
-  Order=Order:long()
 
 
 local a4= sys.clock()
 
-
-
+  scores = scores:cuda()
+  local v, Order = torch.sort(scores,1)
+  Order=Order:long()
 
   pick:resize(box_num):zero()
   count = 1
 
 while true do 
- if Order == nil then print('order nil') break end
- if Order:numel() == 0 then break end
+  if Order == nil then break end
+  if Order:numel() == 0 then break end
     
     local last = Order:size(1)
     local i = Order[last]
@@ -185,11 +185,21 @@ while true do
     
 
     Order = Order[{{1, last-1}}] -- remove picked element from view
-    local partial_IoU = IOU[i]:float():squeeze():index(1,Order)
+    local xmax =  torch.cmin(boxes_mm[{{},{3}}],boxes_mm[{i,3}])
+    local xmin = torch.cmax(boxes_mm[{{},{1}}],boxes_mm[{i,1}])
+    local ymax = torch.cmin(boxes_mm[{{},{4}}],boxes_mm[{i,4}])
+    local ymin = torch.cmax(boxes_mm[{{},{2}}],boxes_mm[{i,2}])
+    ymax:csub(ymin):cmax(0)
+    xmax:csub(xmin):cmax(0)
+
+    local I = torch.cmul(ymax,xmax)
+
+
+    local IOU = S[i]:squeeze()+S+ I
+    local partial_IoU = IOU:index(1,Order):view(-1)
 
     Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap
-  --  print(pick:size())
-end
+  end
 
   -- reduce size to actual count
   local a5 = sys.clock()

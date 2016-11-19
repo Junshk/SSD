@@ -9,7 +9,7 @@ torch.setnumthreads(2)
 --------------------------------------------
 --------------------------------------------------------------
 function augment(img,anno_class)
-math.randomseed(sys.clock())--os.time())
+--math.randomseed(sys.clock())--os.time())
 -- choose aug type
 ::otherOpt::
 local anno = anno_class[{{1,4},{}}]:clone()
@@ -23,7 +23,7 @@ local flip = math.random(2)
 
 local function new_patch()  
   
-  local crop_size = math.pow(0.1,math.random())
+  local crop_size = 0.3+(1-0.3)*math.random()
   local aspect = math.pow(2,math.random(-1,1))
   local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w),--math.min(math.floor(crop_size*math.sqrt(aspect)*w),w), 
                      math.floor(crop_size*math.sqrt(1/aspect)*h)--math.min(math.floor(crop_size*math.sqrt(1/aspect)*h),h)
@@ -74,9 +74,9 @@ end
       local r_crop_h = math.min(h- crop_sy,crop_h)
       aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
       if chm == false then 
-        aug_img[{{1}}]:fill(104)
-        aug_img[{{2}}]:fill(117)
-        aug_img[{{3}}]:fill(123)
+        aug_img[{{1}}]:fill(b_mean)
+        aug_img[{{2}}]:fill(g_mean)
+        aug_img[{{3}}]:fill(r_mean)
       end  
       aug_img:div(norm)
       
@@ -110,7 +110,7 @@ anno[{{4}}]:div(aug_img:size(2))
 --  assert(torch.sum(torch.ge(xymin,xymax))==0) 
    anno[{{1,2}}] = xymax - xymin
    anno[{{3,4}}] = (xymax + xymin) /2
-   anno:clamp(0,1)
+--   anno:clamp(0,1)
    end
    --print(anno)
 ---flip
@@ -123,7 +123,11 @@ anno[{{4}}]:div(aug_img:size(2))
 --scale to 500 by 500
 
 aug_img = image.scale(aug_img,500,500)
-
+--t_num =1
+--while paths.filep('conf/'..t_num..'.jpg') ==true do
+--t_num = t_num+1
+--  end
+--image.save('conf/'..t_num..'.jpg',aug_img)
 --print('img max v',torch.max(torch.abs(aug_img)))
 --print(augType)
 return aug_img, anno, class
@@ -132,7 +136,7 @@ return aug_img, anno, class
 end
 
 function dataload(ImgInfo) -- with normalize
-math.randomseed(os.time())
+math.randomseed(sys.clock())
 ::re::
 --print('dataload')
 local fetchNum = math.random(1,#ImgInfo) 
@@ -165,9 +169,9 @@ end
 
 ---input normalize
 if chm == true then
-img[{{1}}]=img[{{1}}]:csub(123)
-img[{{2}}]=img[{{2}}]:csub(117)
-img[{{3}}]=img[{{3}}]:csub(104)
+img[{{1}}]=img[{{1}}]:csub(r_mean)
+img[{{2}}]=img[{{2}}]:csub(g_mean)
+img[{{3}}]=img[{{3}}]:csub(b_mean)
 --print(img)
 end
 if bgr == true then
@@ -272,7 +276,7 @@ local default_size = 20097
 local input_images = torch.Tensor(batch_size,3,500,500)
 local target_anno =  torch.Tensor(batch_size,4,default_size)
 local target_class = torch.Tensor(batch_size,1,default_size):fill(21)--1~21
-
+math.randomseed(os.time())
 
 for iter =1,batch_size do
 

@@ -11,19 +11,24 @@ logadd = 1e-2
 bgr = true
 truck = true
 chm = true--false
-weighted21 = false
+
+r_mean = 123.68
+g_mean = 116.779
+b_mean = 103.939
+
+weighted21 =false
 
 logarithm = logarithm and not Sub
 print(var_w,var_x,norm,logarithm,Sub,bgr,truck)
 -----------------------
 
 require 'training'
-local i = 50000
+local i = 1000
 
 local option =
 {
   
-  netname = 'vgg_SSD500_1118-2'--1116-2' --1118 is acc change; 8-2 acc_n change
+  netname = 'vgg_SSD500_1119-2'--1116-2' --1118 is acc change; 8-2 acc_n change
 
 ,  plot_iter =100,end_iter = 80*1000,
   print_iter=1,save_iter=50,

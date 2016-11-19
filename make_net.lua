@@ -106,6 +106,7 @@ end
 function pretrain(net,base)
 
 for iter = 1, 23 do
+local module 
 
 if base.modules[iter].weight ~= nil then
   if iter >= 1 and iter <=9 then 
@@ -136,7 +137,7 @@ local bias_of_fc6 = base.modules[33].bias
 
 local perm_order = torch.randperm(4096)
 perm_order = perm_order[{{1,1024}}]
-local sample = torch.Tensor({1,4,7}):long()
+local sample = torch.Tensor({2,4,6}):long()
 
 
 weight_of_fc6 = weight_of_fc6:index(1,perm_order:long())
@@ -213,10 +214,10 @@ for iter = 24, 30 do
 seq1:add(base.modules[iter])
 end
 seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
-bias_of_fc6:fill(0)
-bias_of_fc7:fill(0)
-seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.copy,bias_of_fc6):learningRate('bias',2):weightDecay('bias',0))  -- subsampling fc 6
-seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.copy,bias_of_fc7):learningRate('bias',2):weightDecay('bias',0)) -- subsampling fc 7
+--bias_of_fc6:fill(0)
+--bias_of_fc7:fill(0)
+seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.copy,bias_of_fc6):learningRate('weight',1):weightDecay('weight',1):learningRate('bias',2):weightDecay('bias',0))  -- subsampling fc 6
+seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.copy,bias_of_fc7):learningRate('bias',2):weightDecay('bias',0):learningRate('weight',1):weightDecay('weight',1)) -- subsampling fc 7
 seq1:add(concat2)
 
 concat1:add(seq1)
