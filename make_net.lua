@@ -103,22 +103,45 @@ reshape:add(nn.Reshape(classes,3*63*63))
 return confnet
 end
 
-function pretrain(net,base)
+function pretrain2(base)
+local seq = nn.Sequential()
+local n = #base.modules
 
-for iter = 1, 23 do
-local module 
-
-if base.modules[iter].weight ~= nil then
-  if iter >= 1 and iter <=9 then 
-  base.modules[iter]:learningRate('weight',0):learningRate('bias',0):weightDecay('weight',0):weightDecay('bias',0)
-  else base.modules[iter]:learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)
+for iter = 24, n do
+ if iter <=30 then
+   if base.modules[iter].weight ~=nil then
+    seq:add(base.modules[iter]:learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0))
+   else  
+ seq:add( base.modules[iter])
+    end
   end
 end
---cal conv = base.modules[iter]:clone('weight','bias')
-net:add(base.modules[iter])
-
+return seq
 end
+function pretrain1(base)
+local seq = nn.Sequential()
+-- remove
+local n = #base.modules
 
+for iter = 1, 23 do 
+
+
+  if  iter <=8 then 
+    if base.modules[iter].weight ~= nil then 
+      base.modules[iter]:learningRate('weight',0):learningRate('bias',0):weightDecay('weight',0):weightDecay('bias',0)
+
+    end
+  elseif iter <=23 then
+    if base.modules[iter].weight ~= nil then
+      base.modules[iter]:learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)  
+    end
+  end
+
+  seq:add(base.modules[iter])
+--cal conv = base.modules[iter]:clone('weight','bias')
+  end
+
+return seq
 end
 -------------------------------------------------------------------------------
 
@@ -129,7 +152,6 @@ local net = nn.Sequential()
 local base_name = 'vgg'
 local base = base_load(base_name)
 --base:float() ; 
-cudnn.convert(base,nn)
 --base.accGradParameters = function() end
 -- fc 6, 7 to conv and subsampling parameters
 local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
@@ -156,7 +178,7 @@ weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
 weight_of_fc7 = weight_of_fc7:transpose(1,2)
 
 local bias_of_fc7 = base.modules[36].bias:reshape(1024,4,1)
-bias_of_fc7 = bias_of_fc7:index(1,perm_order:long())
+--bias_of_fc7 = bias_of_fc7:index(1,perm_order:long())
 bias_of_fc7 = bias_of_fc7[{{},{1},{}}]
 
 bias_of_fc7 = bias_of_fc7:squeeze()
@@ -209,15 +231,19 @@ concat2:add(seq2)
 concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier
 
 
-
+--[[
 for iter = 24, 30 do
 seq1:add(base.modules[iter])
-end
+end]]--
+
+seq1:add(pretrain2(base))
 seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
 --bias_of_fc6:fill(0)
 --bias_of_fc7:fill(0)
 seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.copy,bias_of_fc6):learningRate('weight',1):weightDecay('weight',1):learningRate('bias',2):weightDecay('bias',0))  -- subsampling fc 6
+seq1:add(nn.ReLU(true))
 seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.copy,bias_of_fc7):learningRate('bias',2):weightDecay('bias',0):learningRate('weight',1):weightDecay('weight',1)) -- subsampling fc 7
+seq1:add(nn.ReLU(true))
 seq1:add(concat2)
 
 concat1:add(seq1)
@@ -227,7 +253,7 @@ if ch==true then ss:add(nn.ChannelNormalization(2)) end
 if mul==true then ss:add(cmul) end
 
 concat1:add(ss)
-pretrain(net,base)
+net:add(pretrain1(base))
 net:add(concat1)
 
 net:add(nn.FlattenTable())
@@ -256,7 +282,7 @@ print('residual')
 else assert(false,'wrong base network name')
 end
 
-base =nil; collectgarbage();
+ collectgarbage();
 net = cudnn.convert(net,cudnn):cuda()
 
 return net
