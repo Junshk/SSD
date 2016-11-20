@@ -123,13 +123,21 @@ anno[{{4}}]:div(aug_img:size(2))
 --scale to 500 by 500
 
 aug_img = image.scale(aug_img,500,500)
---t_num =1
---while paths.filep('conf/'..t_num..'.jpg') ==true do
---t_num = t_num+1
---  end
---image.save('conf/'..t_num..'.jpg',aug_img)
---print('img max v',torch.max(torch.abs(aug_img)))
---print(augType)
+
+--[[t_num =1
+while paths.filep('conf/'..t_num..'.jpg') ==true do
+t_num = t_num+1
+  end
+local bb_img = aug_img:clone()
+
+for iter = 1, class:numel() do
+local x_,y_,xu,yu = math.max(1,math.ceil(500*(anno[{3,iter}]-anno[{1,iter}]/2))),math.max(1,math.ceil(500*(anno[{4,iter}]-anno[{2,iter}]/2))),math.ceil(500*(anno[{3,iter}]+anno[{1,iter}]/2)),math.ceil(500*(anno[{4,iter}]+anno[{2,iter}]/2))
+print(x_,y_,xu,yu)
+bb_img = image.drawRect(bb_img,x_,y_,xu,yu)
+end
+image.save('conf/'..t_num..'.jpg',bb_img)
+
+print('AG',augType)]]--
 return aug_img, anno, class
  
 
@@ -206,10 +214,15 @@ end
 local prior_whcxy = real_box_ratio:clone()
 
 function make_default_anno(anno,class)--/////////////////// input cxy
---print('load make def')
+
 local anno_default = prior_whcxy:clone()
 local class_default = torch.Tensor(1,20097):fill(21)
-
+local gt_xymm = torch.Tensor(anno:size())
+  gt_xymm[{{1}}]= -anno[{{1}}]/2 + anno[{{3}}]
+  gt_xymm[{{2}}]= -anno[{{2}}]/2 + anno[{{4}}] 
+  gt_xymm[{{3}}]= anno[{{1}}]/2 + anno[{{3}}]
+  gt_xymm[{{4}}]= anno[{{2}}]/2 + anno[{{4}}]
+ 
 
 local anno_n = anno:size(2)
 local perm = torch.randperm(anno_n):long()
@@ -221,50 +234,45 @@ local unused = torch.ByteTensor(20097):fill(1)
 
 for iter = 1, anno_n do
 
-  local gt_xymm = torch.Tensor(4,1);
+  local gt_xymm_iter = gt_xymm[{{},iter}];
 
-  gt_xymm[{1}]= -anno[{{1},{iter}}]/2 + anno[{{3},{iter}}]
-  gt_xymm[{2}]= -anno[{{2},{iter}}]/2 + anno[{{4},{iter}}] 
-  gt_xymm[{3}]= anno[{{1},{iter}}]/2 + anno[{{3},{iter}}]
-  gt_xymm[{4}]= anno[{{2},{iter}}]/2 + anno[{{4},{iter}}]
-   
-    iou_annos[{iter}] = matching_gt_matrix(gt_xymm,500,true)---// xymm
-  --print(torch.sum(iou_annos[iter]))
-  --assert(gt_class<21 and gt_class >=1 ,'wrong class labeling '..gt_class)
-  assert(torch.sum(torch.eq(anno[{{2},{iter}}],0))==0)
+  
+    iou_annos[{iter}] = matching_gt_matrix(gt_xymm_iter,500,true)---// xymm
+   assert(torch.sum(torch.eq(anno[{{2},{iter}}],0))==0)
 end
+
+
+-- CLIPPING ANNO
+gt_xymm:clamp(0,1)
+anno[{{1}}] = gt_xymm[{{3}}] - gt_xymm[{{1}}]
+anno[{{2}}] = gt_xymm[{{4}}] - gt_xymm[{{2}}]
+anno[{{3}}] = gt_xymm[{{1}}]/2+gt_xymm[{{3}}]/2
+anno[{{4}}] = gt_xymm[{{2}}]/2+gt_xymm[{{4}}]/2
 
 -- max
 for iter = 1, anno_n do
   local iter_anno = torch.cmul(iou_annos[iter],unused:float())
   local v,id =torch.max(iter_anno,1)
- --print(id:squeeze(),iter_anno:size())
   id = id:squeeze()
+  
   anno_default[{{},id}] = anno[{{},iter}]
   class_default[{{},id}] = class[{{},iter}]
   unused[id] = 0 
 end
---  local matching = matching_gt_matrix(gt_xymm,500)---// xymm
 -- rest
---print(iou_annos)
 local v, id = torch.max(iou_annos,1)
---print(torch.sum(unused))
 local foreground = torch.gt(v,0.5)
 unused:cmul(foreground)  
 id = id[unused]
---print (id:size(),torch.sum(foreground))
+
 if id:numel()~= 0 then
 anno_default[unused:view(1,-1):expand(anno_default:size())] =
 anno:index(2,id:long())
 class_default[unused] = class:index(2,id)
 end
---[[
-  local expand_num = torch.sum(matching)
-  anno_default[matching:expand(4,20097)] = anno[{{1,4},{iter}}]:expand(4,expand_num)---not perfect when overlap exist
-  class_default[matching] = gt_class
-]]--
 
---end
+
+ 
 
 return anno_default, class_default 
 end
@@ -286,21 +294,20 @@ local augmentedImg, aug_anno, aug_class= dataload(ImgInfo) -- for a image
  
   local anno_default, class_default = make_default_anno(aug_anno,aug_class)
   local mask = torch.eq((anno_default[{{2}}]),0) 
-
+--------------------------------------------------
   if torch.sum(mask) >0 then print(anno_default[mask:expand(4,20097)]:view(4,-1));assert(nil) end
 
 anno_default[{{3,4}}]:csub(prior_whcxy[{{3,4}}])
 if Sub == true then anno_default[{{1,2}}]:csub(prior_whcxy[{{1,2}}]) end
 anno_default[{{3,4}}]:cdiv(prior_whcxy[{{1,2}}])
 anno_default[{{1,2}}]:cdiv(prior_whcxy[{{1,2}}])
---  print(anno_default[{{1,4},{1,4}}])
 if logarithm == true then   
   anno_default[{{1,2}}]:log() 
 
   end
 anno_default[{{1,2}}]:mul(var_w)
 anno_default[{{3,4}}]:mul(var_x)
-
+----------------------------------------------
 target_anno[{{iter}}] = anno_default -- - prior_whcxy-- w,h cx,cy
 target_class[{{iter}}] = class_default
 input_images[{{iter}}] = augmentedImg
