@@ -8,14 +8,11 @@ print('test load')
 local batch = 8
 
 torch.setdefaulttensortype('torch.FloatTensor')
---local real_box_redefine =real_box_ratio:t():view(1,4,20097):copy()
---local matio = require 'matio'
---local test_txt
---local test_list = {}
+
 local softmax = cudnn.LogSoftMax():cuda()
 softmax:evaluate()
 
-
+local img_save_iter = 1
 --------------------------------------------
 function write_txt(result,folder,class_num)
   assert(folder~=nil, 'need folder name to write txt file')
@@ -23,7 +20,7 @@ function write_txt(result,folder,class_num)
       if paths.dirp(folder) ==false then os.execute('mkdir '..folder) end
 
 --      for class_num = 1, 20 do
-
+        local bb_image = image.load(result.image_name.. '.jpg')
         local class_box , class_score = result.box, result.score
         if class_box:numel() ==0 then return end
         local write_result = io.open(folder..'/'..'comp3_det_test_'..num2class(class_num)..'.txt',"a")
@@ -36,19 +33,24 @@ function write_txt(result,folder,class_num)
             --local box = result.box[{iter2}]
             local box = class_box[{{iter2}}]:squeeze()
             write_result:write(image_name,' ',result.score[{iter2}],' ',box[1],' ',box[2],' ',box[3],' ',box[4],'\n' )
-
+            bb_image = image.drawRect(bb_image,box[1],box[2],box[3],box[4])
             end
       --    end
        write_result:close() 
 --      end
+  
+  image.save('conf/'..img_save_iter..'.jpg',bb_image)
+  img_save_iter = img_save_iter+1
   end
 
 ---------------------------------------------
 
 function test(net,list,folder)
+  img_save_iter =1
+  
   local i1 = os.time()
   net:evaluate()
-
+  
   print('testing..')
   if paths.dirp(folder) ==false then os.execute('mkdir '..folder) end
  

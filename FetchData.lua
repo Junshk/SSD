@@ -25,11 +25,9 @@ local function new_patch()
   
   local crop_size = 0.3+(1-0.3)*math.random()
   local aspect = math.pow(2,math.random(-1,1))
-  local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w),--math.min(math.floor(crop_size*math.sqrt(aspect)*w),w), 
-                     math.floor(crop_size*math.sqrt(1/aspect)*h)--math.min(math.floor(crop_size*math.sqrt(1/aspect)*h),h)
+  local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w), 
+                     math.floor(crop_size*math.sqrt(1/aspect)*h)
   local  crop_sx ,crop_sy = math.random(1,math.max(w-crop_w+1,1)), math.random(1,math.max(h-crop_h+1,1))
-  --math.ceil(w/2-math.random(1,math.floor(crop_w/2))),
-  --math.ceil(h/2-math.random(1,math.floor(crop_h/2)))
    
   return  crop_w,crop_h,crop_sx, crop_sy 
 end
@@ -106,13 +104,10 @@ anno[{{4}}]:div(aug_img:size(2))
 
   xymin:clamp(0,1)
    xymax:clamp(0,1)
---  print(xymin,xymax)
---  assert(torch.sum(torch.ge(xymin,xymax))==0) 
    anno[{{1,2}}] = xymax - xymin
    anno[{{3,4}}] = (xymax + xymin) /2
---   anno:clamp(0,1)
    end
-   --print(anno)
+
 ---flip
   assert(torch.sum(torch.eq(anno[{{2}}],0))==0)
   if flip == 1 then
@@ -146,7 +141,6 @@ end
 function dataload(ImgInfo) -- with normalize
 math.randomseed(sys.clock())
 ::re::
---print('dataload')
 local fetchNum = math.random(1,#ImgInfo) 
 
 
@@ -164,7 +158,6 @@ local class = class2num(data.object[1][iter].class)
 
 if anno[{1}]>=anno[{3}] or anno[{2}]>=anno[{4}] then assert(nil,"wrong anno"); goto re end
 
---anno = anno:cdiv(torch.Tensor({img:size(3),img:size(2),img:size(3),img:size(2)}))
 --return whcxy form
 anno_class[{{1},{iter}}] = (-anno[{1}]+anno[{3}])
 anno_class[{{2},{iter}}] = (-anno[{2}]+anno[{4}])

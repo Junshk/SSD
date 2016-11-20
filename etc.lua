@@ -168,14 +168,13 @@ local a4= sys.clock()
   count = 1
 
 while true do 
-  if Order == nil then break end
-  if Order:numel() == 0 then break end
+   if Order:numel() == 0 then break end
     
     local last = Order:size(1)
     local i = Order[last]
     
     
-  --  print(count,i)
+    --print(count,i)
     pick[count] = i
     count = count + 1
     
@@ -195,10 +194,12 @@ while true do
     local I = torch.cmul(ymax,xmax)
 
 
-    local IOU = S[i]:squeeze()+S+ I
-    local partial_IoU = IOU:index(1,Order):view(-1)
+    local IOU = S[i]:squeeze()+S+I
+    local partial_IoU = IOU:index(1,Order):view(Order:size()):float()
+    --print(partial_IoU:le(overlap):size())
 
     Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap
+  
   end
 
   -- reduce size to actual count

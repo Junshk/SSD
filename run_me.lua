@@ -28,10 +28,10 @@ local i = 1000
 local option =
 {
   
-  netname = 'vgg_SSD500_1119-2'--1116-2' --1118 is acc change; 8-2 acc_n change
+  netname = 'vgg_SSD500_1120'--1116-2' --1118 is acc change; 8-2 acc_n change
 
-,  plot_iter =100,end_iter = 80*1000,
-  print_iter=1,save_iter=50,
+,  plot_iter =50,end_iter = 80*1000,
+  print_iter=1,save_iter=100,
   test_iter = i,
   batch_size = 12, multi_batch =2,
   valid =true,

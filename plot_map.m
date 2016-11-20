@@ -11,7 +11,7 @@ folder = dir([result_folder '/val*']);
 VOCopts
 tic;
 for j = 1:length(folder)
-    folder_ = folder(j).name ;
+    folder_ = folder(j).name 
     VOCopts.detrespath = [result_folder '/%s/comp3_det_test_%s.txt' ];
     VOCopts.imgsetpath = [result_folder '/' folder_ '/%s.txt'];
     VOCopts.testset = 'test';
