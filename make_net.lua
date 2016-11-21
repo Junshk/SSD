@@ -35,7 +35,7 @@ os.execute('wget '..url..'/ResNet-50-modle.caffemodel')
 end
   
 if base_name == 'vgg' then 
-base_net = torch.load('VGG16.net')--loadcaffe.load('VGG_ILSVRC_layers_deploy.prototxt','VGG_ILSVRC_16_layers.caffemodel','cudnn')
+base_net = torch.load('VGG16.net')--loadcaffe.load('VGG_ILSVRC_layers_deploy.prototxt','VGG_ILSVRC_16_layers.caffemodel','nn')
 elseif base_name == 'residual' then
 base_net = loadcaffe.load()
 else assert(false,'wrong base network name')
@@ -71,8 +71,6 @@ reshape:add(nn.Reshape(4,3*63*63))
   locnet:add(reshape)
   locnet:add(nn.JoinTable(2,2))
 
---locnet:add(nn.FlattenTable())
---cudnn.convert(locnet,cudnn)
 return locnet
 end
 
@@ -98,8 +96,7 @@ reshape:add(nn.Reshape(classes,3*63*63))
   confnet:add(parl)
   confnet:add(reshape)
   confnet:add(nn.JoinTable(2,2))
---confnet:add(nn.FlattenTable())
---cudnn.convert(confnet,cudnn)
+
 return confnet
 end
 
@@ -123,23 +120,32 @@ local seq = nn.Sequential()
 -- remove
 local n = #base.modules
 
-for iter = 1, 23 do 
+for iter = 9, 23 do 
 
 
-  if  iter <=8 then 
-    if base.modules[iter].weight ~= nil then 
-      base.modules[iter]:learningRate('weight',0):learningRate('bias',0):weightDecay('weight',0):weightDecay('bias',0)
-
-    end
-  elseif iter <=23 then
+--if iter <=23 then
     if base.modules[iter].weight ~= nil then
       base.modules[iter]:learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)  
     end
-  end
+--  end
 
   seq:add(base.modules[iter])
 --cal conv = base.modules[iter]:clone('weight','bias')
   end
+
+return seq
+end
+function pretrain0(base)
+local seq = nn.Sequential()
+for iter = 1, 8 do
+--if  iter <=8 then 
+    if base.modules[iter].weight ~= nil then 
+      base.modules[iter]:learningRate('weight',0):learningRate('bias',0):weightDecay('weight',0):weightDecay('bias',0)
+      
+    end
+    seq:add(base.modules[iter])
+end
+seq.accGradParameters = function() end
 
 return seq
 end
@@ -285,7 +291,7 @@ end
  collectgarbage();
 net = cudnn.convert(net,cudnn):cuda()
 
-return net
+return net, pretrain0(base)
 
 end
 --cudnn.fastest = true

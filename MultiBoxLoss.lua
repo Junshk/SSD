@@ -3,7 +3,13 @@ require 'cudnn'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 local softmax = nn.LogSoftMax():cuda()
-----------------------------------------
+local L1loss = nn.SmoothL1Criterion():cuda()
+L1loss.sizeAverage = false
+local weight = torch.Tensor(21):fill(1);
+if weighted21 ==true then weight[21]=1/3 end
+local nll = nn.ClassNLLCriterion(weight):cuda()
+nll.sizeAverage =false
+---------------------------------------
 function bat2wo(input)
 
   if input:dim() ==2 then return input end
@@ -82,12 +88,6 @@ local n_match_num = torch.sum(n_match_mask)
   local dl_dx_loc = torch.Tensor(target2)
   local dl_dx_conf 
 
-  local L1loss = nn.SmoothL1Criterion():cuda()
-  L1loss.sizeAverage = false
-  local weight = torch.Tensor(21):fill(1);
-  if weighted21 ==true then weight[21]=1/3 end
-   local nll = nn.ClassNLLCriterion(weight):cuda()
-  nll.sizeAverage =false
   local loss_conf ,loss_loc = 0,0
   
  
@@ -103,7 +103,7 @@ local n_match_num = torch.sum(n_match_mask)
   loss_loc = L1loss:forward((input2):cuda(),(target2):cuda())*lambda
   dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
 
-  L1loss = nil;
+ 
 --  input2 = nil ;
   target2:float();
   input2:float()

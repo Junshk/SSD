@@ -99,7 +99,7 @@ end
 
 function nms(boxes_mm, overlap, scores,image_size) -- adjusted
 
-
+  local top = 200 
   
   ----- cuda calculate iou of all pair
   boxes_mm = boxes_mm:float(); 
@@ -125,36 +125,17 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
   boxes_mm[{{},{2}}]:add(boxes_mm[{{},{4}}],-1,boxes_mm[{{},{2}}])
  
   boxes_mm:clamp(0,1)
+  boxes_mm[{{},{1}}]:mul(image_size[3])
+  boxes_mm[{{},{2}}]:mul(image_size[2])
+  boxes_mm[{{},{3}}]:mul(image_size[3])
+  boxes_mm[{{},{4}}]:mul(image_size[2])
+  boxes_mm:floor()
 
   local S, h = torch.csub(boxes_mm[{{},{3}}],boxes_mm[{{},{1}}]), torch.csub(boxes_mm[{{},{4}}],boxes_mm[{{},{2}}])
   S:cmul(h) -- reuse
+    h =nil; 
   
-  --[[
-  local xmax = boxes_mm[{{},{3}}]
-  xmax= torch.cmin(xmax:expand(box_num,box_num),xmax:t():expand(box_num,box_num))
 
-  local xmin = boxes_mm[{{},{1}}]
-  xmax:csub(torch.cmax(xmin:expand(box_num,box_num),xmin:t():expand(box_num,box_num))) 
-
-  
-   local a2 = sys.clock()
-
-  local ymax = boxes_mm[{{},{4}}]
-  ymax = torch.cmin(ymax:expand(box_num,box_num),ymax:t():expand(box_num,box_num))
-  local ymin = boxes_mm[{{},{2}}]
-  ymax:csub(torch.cmax(ymin:expand(box_num,box_num),ymin:t():expand(box_num,box_num)))
-
-
-   local a3 =sys.clock()
-   
- 
-  local inter = torch.cmul(ymax,xmax)
-  ymax = nil ; xmax = nil;
-  inter:cdiv(S:expand(box_num,box_num)+S:t():expand(box_num,box_num)-inter)
-  local IOU = inter
-   ]]--
-   h =nil; 
-  
  
 
 
@@ -177,7 +158,7 @@ while true do
     --print(count,i)
     pick[count] = i
     count = count + 1
-    
+    if count>top then break ; end 
     if last == 1 then
       break
     end
@@ -194,7 +175,7 @@ while true do
     local I = torch.cmul(ymax,xmax)
 
 
-    local IOU = S[i]:squeeze()+S+I
+    local IOU =torch.cdiv(I,( S[i]:squeeze()+S-I+1e-10))
     local partial_IoU = IOU:index(1,Order):view(Order:size()):float()
     --print(partial_IoU:le(overlap):size())
 
@@ -204,17 +185,11 @@ while true do
 
   -- reduce size to actual count
   local a5 = sys.clock()
-  local top = 200 
+
   count = math.min(count,top)
 
   pick = pick[{{1, count-1}}]
---print(pick:size()) 
-  boxes_mm[{{},{1}}]:mul(image_size[3])
-  boxes_mm[{{},{2}}]:mul(image_size[2])
-  boxes_mm[{{},{3}}]:mul(image_size[3])
-  boxes_mm[{{},{4}}]:mul(image_size[2])
-
-  -- remove wrong box
+   -- remove wrong box
   S = S:float()
   pick = pick[torch.ne(S:index(1,pick),0)]
 
@@ -222,13 +197,20 @@ while true do
   
   if pick:numel() == 0 then return pick end
 
-  S = nil;
+    
   boxes_mm = boxes_mm:float()
   scores = scores:float()
 
-   boxes_mm = boxes_mm:index(1,pick)
-   scores = scores:index(1,pick)
+  boxes_mm = boxes_mm:index(1,pick)
+  scores = scores:index(1,pick)
    
-   collectgarbage()
-   return boxes_mm, scores
+  collectgarbage()
+ 
+  local output =   torch.Tensor(boxes_mm:size(1),6)
+  
+  output[{{},{1,4}}] = boxes_mm
+  output[{{},{5}}] = scores
+  
+ return output--boxes_mm, scores
+
 end

@@ -14,33 +14,40 @@ softmax:evaluate()
 
 local img_save_iter = 1
 --------------------------------------------
-function write_txt(result,folder,class_num)
+function write_txt(tot_result,folder,image_name)--,class_num)
   assert(folder~=nil, 'need folder name to write txt file')
    -- write in filename txt 
       if paths.dirp(folder) ==false then os.execute('mkdir '..folder) end
 
---      for class_num = 1, 20 do
-        local bb_image = image.load(result.image_name.. '.jpg')
-        local class_box , class_score = result.box, result.score
-        if class_box:numel() ==0 then return end
+      --cutting 200 
+      local bb_image = image.load(image_name.. '.jpg')
+      local image_id = string.sub(image_name,-11,-1)
+      
+      for class_num = 1, 20 do
+        --local result = tot_result[class_num]
+        local class_result = tot_result[torch.eq(tot_result[{{},{6}}],class_num)]      
+        local class_box , class_score = class_result[{{1,4}}],class_result[{{5}}]--result.box, result.score
+        --if class_box:numel() ==0 then return end
+        --local class_num = tot_result[{iter,6}]
         local write_result = io.open(folder..'/'..'comp3_det_test_'..num2class(class_num)..'.txt',"a")
         write_result:write('\n')
-    --      for image_iter = 1, #class_result do
-          --   local image_result = class_result[image_iter]         
-            local image_name = string.sub(result.image_name,-11,-1)
+     
+         
 
             for iter2 = 1, class_box:size(1) do
-            --local box = result.box[{iter2}]
             local box = class_box[{{iter2}}]:squeeze()
-            write_result:write(image_name,' ',result.score[{iter2}],' ',box[1],' ',box[2],' ',box[3],' ',box[4],'\n' )
-            bb_image = image.drawRect(bb_image,box[1],box[2],box[3],box[4])
+            local score = class_score[iter2]
+            write_result:write(image_id,' ',score,' ',box[1],' ',box[2],' ',box[3],' ',box[4],'\n' )
+            bb_image = image.drawRect(bb_image,(box[1]),(box[2]),(box[3]),(box[4]))
+            local label = num2class(class_num)--string.format('%s_%f',num2class(class_num),score)
+            bb_image = image.drawText(bb_image,label,math.max(box[1]-15,0),math.max(box[2]-15,0),{wrap=true})--,{size=5})
             end
-      --    end
-       write_result:close() 
---      end
-  
-  image.save('conf/'..img_save_iter..'.jpg',bb_image)
-  img_save_iter = img_save_iter+1
+        write_result:close() 
+      
+      end
+   print(img_save_iter) 
+    image.save('conf/'..img_save_iter..'.jpg',bb_image)
+    img_save_iter = img_save_iter+1
   end
 
 ---------------------------------------------
@@ -89,18 +96,12 @@ function test(net,list,folder)
     end
           -----------
           --forward--
-  --net:cuda()
-  local output =net:forward(input_tensor:cuda()):float()
-  --input_tensor=input_tensor:float()
-  --input_tensor = nil; collectgarbage()
-  --net:float()
- -- result_vector[{{start_iter,end_iter}}] = output:float():squeeze()
-  
-  local conf_before_softmax = output[{{},{1,21}}]:transpose(2,3):reshape(n*20097,21)
+   local output =net:forward(input_tensor:cuda()):float()
+   local conf_before_softmax = output[{{},{1,21}}]:transpose(2,3):reshape(n*20097,21)
   local conf = softmax:forward(conf_before_softmax:cuda()):view(n,20097,21):exp():float()
   
   local refined_box = output[{{},{22,25}}]
-  -- jihong --
+
   refined_box[{{},{1,2}}]:div(var_w)
   refined_box[{{},{3,4}}]:div(var_x)
 
@@ -113,13 +114,14 @@ function test(net,list,folder)
   if Sub == true then refined_box[{{},{1,2}}]:add(expand[{{},{1,2}}]) end  
   refined_box = refined_box --+ real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
---  local score, recognition = torch.max(conf,3)
-  --net:float()
   -- nms
   for iter_image = 1, n do
     
     local image_name = list[iter_image+start_iter-1].image_name
     local size = image.load(image_name..'.jpg'):size()
+    
+    local tot_output = torch.Tensor()
+    
     for iter_class =1, 20 do
        ::pass::
     local res = {}
@@ -138,11 +140,20 @@ function test(net,list,folder)
     res.image_name = image_name
     
     --nms
-    res.box, res.score = nms(detection_box,0.45,detection_score,size)
-    
-    write_txt(res, folder,iter_class)
-    
+   -- res.box, res.score 
+    local output = nms(detection_box,0.45,detection_score,size)
+    output[{{},{6}}] = iter_class
+
+    if tot_output:numel() ==0 then tot_output = output
+    else tot_output = torch.cat({tot_output,output},1) end
+        
     end
+    
+    -- discard wo 200 
+    local _,sort_idx  = tot_output[{{},5}]:sort(1,true)
+    tot_output = tot_output:index(1,sort_idx)
+    
+    write_txt(tot_output,folder,image_name)--(res, folder,iter_class)
 
   end
 

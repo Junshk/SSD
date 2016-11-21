@@ -9,7 +9,9 @@ torch.setnumthreads(2)
 --------------------------------------------
 --------------------------------------------------------------
 function augment(img,anno_class)
---math.randomseed(sys.clock())--os.time())
+if random_data2 ~=true then 
+  math.randomseed(sys.clock())--os.time())
+end
 -- choose aug type
 ::otherOpt::
 local anno = anno_class[{{1,4},{}}]:clone()
@@ -23,7 +25,7 @@ local flip = math.random(2)
 
 local function new_patch()  
   
-  local crop_size = 0.3+(1-0.3)*math.random()
+  local crop_size = 0.1+(1-0.1)*math.random()
   local aspect = math.pow(2,math.random(-1,1))
   local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w), 
                      math.floor(crop_size*math.sqrt(1/aspect)*h)
@@ -119,27 +121,30 @@ anno[{{4}}]:div(aug_img:size(2))
 
 aug_img = image.scale(aug_img,500,500)
 
---[[t_num =1
-while paths.filep('conf/'..t_num..'.jpg') ==true do
+t_num =1
+while paths.filep('conf/gt'..t_num..'.jpg') ==true do
 t_num = t_num+1
   end
 local bb_img = aug_img:clone()
 
 for iter = 1, class:numel() do
 local x_,y_,xu,yu = math.max(1,math.ceil(500*(anno[{3,iter}]-anno[{1,iter}]/2))),math.max(1,math.ceil(500*(anno[{4,iter}]-anno[{2,iter}]/2))),math.ceil(500*(anno[{3,iter}]+anno[{1,iter}]/2)),math.ceil(500*(anno[{4,iter}]+anno[{2,iter}]/2))
-print(x_,y_,xu,yu)
+--print(x_,y_,xu,yu)
 bb_img = image.drawRect(bb_img,x_,y_,xu,yu)
+bb_img = image.drawText(bb_img,num2class(class[{1,iter}]),x_,y_)
 end
-image.save('conf/'..t_num..'.jpg',bb_img)
+image.save('conf/gt'..t_num..'.jpg',bb_img)
 
-print('AG',augType)]]--
+print('AG',augType)
 return aug_img, anno, class
  
 
 end
 
 function dataload(ImgInfo) -- with normalize
-math.randomseed(sys.clock())
+if random_data2 ~=true then
+math.randomseed(os.time())
+end
 ::re::
 local fetchNum = math.random(1,#ImgInfo) 
 
@@ -183,16 +188,11 @@ vgg_img[{{2}}] = (img[{{2}}])--:float())
 vgg_img[{{1}}] = (img[{{3}}])--:float())
 img =vgg_img
 elseif bgr ==false then
---img[{{1}}] = (img[{{1}}]:float())
---img[{{2}}] = (img[{{2}}]:float())
---img[{{3}}] = (img[{{3}}]:float())
 end
 ---
 
 img:div(norm)
---print(anno_class)
 --- augmentation
---print(anno_class)
 local aug_img,aug_anno,aug_class = augment(img,anno_class)
 
 if aug_img == nil then goto re end

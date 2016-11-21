@@ -2,12 +2,10 @@
 dofile('dataload.lua')
 
 print('load datas')
-var_w = 5
-var_x = 10
+var_w = 1--5
+var_x = 1--10
 norm = 1
-Sub = false
 logarithm = true
-logadd = 1e-2
 bgr = true
 truck = true
 chm = true--false
@@ -17,19 +15,18 @@ g_mean = 116.779
 b_mean = 103.939
 
 weighted21 =false
-
+random_data2 = true
 logarithm = logarithm and not Sub
 print(var_w,var_x,norm,logarithm,Sub,bgr,truck)
 -----------------------
 
 require 'training'
-local i = 1000
+local i =  500
 
 local option =
 {
   
-  netname = 'vgg_SSD500_1120'--1116-2' --1118 is acc change; 8-2 acc_n change
-
+  netname = 'vgg_SSD500_1121'  --depart pretrain fixed w 
 ,  plot_iter =50,end_iter = 80*1000,
   print_iter=1,save_iter=100,
   test_iter = i,
@@ -43,11 +40,13 @@ local option =
 
 -- training
 if weighted21 == true then option.netname = option.netname .. '_weg21' end
-if chm == false then option.netname = option.netname .. '_nochm'end
-if logarithm == true then option.netname = option.netname .. 'log' end
+--if chm == false then option.netname = option.netname .. '_nochm'end
+--if logarithm == true then option.netname = option.netname .. 'log' end
 option.netname = option.netname ..'_w'..var_w..'_x'..var_x..'_n'..norm
-
-
+if random_data2 == true then option.netname = option.netname..'_rdat2' end
+if paths.filep('VGG16.net') ==false then 
+  dofile('utils/caffe.lua')
+end
 training(option)
 
 -- test code
