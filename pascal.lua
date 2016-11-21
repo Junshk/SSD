@@ -3,7 +3,27 @@ torch.setdefaulttensortype('torch.FloatTensor')
 
 local xml = require 'xml'
 
-function ImgInfo(folder)
+function ImgTxt(folder,txtname,Info)
+local Info = Info or {}
+local txt_name = (folder..'/ImageSets/Main/'..txtname) 
+local folder_path = folder
+print(txt_name)
+local txt = assert(io.open(txt_name,'r'))
+  io.input(txt)    
+
+
+  while true do    
+    local image_name = io.read();
+    if image_name == nil then break; end
+    table.insert(Info,{path=folder_path,image_name=image_name..'.jpg'})
+  end
+  
+  io.close(txt)
+
+  return Info
+end
+
+function Imginfo(folder)
 
 local Info = {}
 local folder = folder 
