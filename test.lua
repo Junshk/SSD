@@ -48,7 +48,6 @@ function write_txt(tot_result,folder,image_name)--,class_num)
         write_result:close() 
       
       end
-   print(img_save_iter) 
     image.save('conf/'..img_save_iter..'.jpg',bb_image)
     img_save_iter = img_save_iter+1
   end
@@ -56,8 +55,11 @@ function write_txt(tot_result,folder,image_name)--,class_num)
 ---------------------------------------------
 
 function test(net,list,folder)
-  local pretrain = torch.load('pretrain.net')
+  if pretrain == nil then
+    pretrain = torch.load('pretrain.net')
+  end
   pretrain:evaluate()
+
   img_save_iter =1
   
   local i1 = os.time()
