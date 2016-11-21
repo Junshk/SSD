@@ -70,7 +70,7 @@ discard_mask:cmul(negative_mask)
  if torch.sum(discard_mask) ~= discard_negative_num then 
    assert(nil,discard_negative_num..' '..torch.sum(discard_mask)) end 
 --discard, remove loc of 21(bg) 
-  target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)]   
+--  target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)]   
   
   local _, input1_max = torch.max(softmax_score:float(),2)
 
@@ -99,10 +99,10 @@ local n_match_num = torch.sum(n_match_mask)
   dl_dx_conf_ = nll:backward(logsoftmax_score:cuda(),target1:squeeze():cuda()) 
   dl_dx_conf_[discard_mask:expand(dl_dx_conf_:size())] = 0 
   dl_dx_conf = softmax:backward(input1:cuda(),dl_dx_conf_:cuda()):float()
-  
+   target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)]  
   loss_loc = L1loss:forward((input2):cuda(),(target2):cuda())*lambda
   dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
-
+  dl_dx_loc[negative_mask:expand(dl_dx_loc:size())]= 0
  
 --  input2 = nil ;
   target2:float();
