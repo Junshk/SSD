@@ -29,7 +29,7 @@ local function new_patch()
   local aspect = math.pow(2,math.random(-1,1))
   local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w), 
                      math.floor(crop_size*math.sqrt(1/aspect)*h)
-  local  crop_sx ,crop_sy = math.random(1,math.max(w-crop_w+1,1)), math.random(1,math.max(h-crop_h+1,1))
+  local  crop_sx ,crop_sy = math.random(0,math.max(w-crop_w,1)), math.random(0,math.max(h-crop_h,1))
    
   return  crop_w,crop_h,crop_sx, crop_sy 
 end
@@ -54,7 +54,7 @@ end
 
         local min_jaccard_ratio = math.random(5)/5-0.1--math.random(1,5)/5-0.1
 
-        patch_window_ratio = torch.Tensor({crop_sx/w,crop_sy/h,(crop_sx+crop_w-1)/w,(crop_sy+crop_h-1)/h}):reshape(4,1)
+        patch_window_ratio = torch.Tensor({crop_sx/w,crop_sy/h,(crop_sx+crop_w)/w,(crop_sy+crop_h)/h}):reshape(4,1)
 
         anno_xy[{{1}}] = (anno[{{3}}]-anno[{{1}}]/2)/w
         anno_xy[{{2}}] = (anno[{{4}}]-anno[{{2}}]/2)/h
@@ -68,8 +68,8 @@ end
 
       
 
-      anno[{{3}}] = (anno[{{3}}]- crop_sx+1)--*ratio_width
-      anno[{{4}}] = (anno[{{4}}]- crop_sy+1)--*ratio_height
+      anno[{{3}}] = (anno[{{3}}]- crop_sx)--*ratio_width
+      anno[{{4}}] = (anno[{{4}}]- crop_sy)--*ratio_height
       local r_crop_w = math.min(w- crop_sx,crop_w)
       local r_crop_h = math.min(h- crop_sy,crop_h)
       aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
