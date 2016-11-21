@@ -135,7 +135,7 @@ bb_img = image.drawText(bb_img,num2class(class[{1,iter}]),x_,y_)
 end
 image.save('conf/gt'..t_num..'.jpg',bb_img)
 
-print('AG',augType)
+--print('AG',augType)
 return aug_img, anno, class
  
 

@@ -22,11 +22,14 @@ function write_txt(tot_result,folder,image_name)--,class_num)
       --cutting 200 
       local bb_image = image.load(image_name.. '.jpg')
       local image_id = string.sub(image_name,-11,-1)
-      
+     if tot_result:numel() ==0 then return nil end 
+
       for class_num = 1, 20 do
         --local result = tot_result[class_num]
-        local class_result = tot_result[torch.eq(tot_result[{{},{6}}],class_num)]      
-        local class_box , class_score = class_result[{{1,4}}],class_result[{{5}}]--result.box, result.score
+        --print(tot_result[{{},{6}}])
+        local class_result = tot_result[torch.eq(tot_result[{{},{6}}],class_num):expand(tot_result:size())]:view(-1,6)     
+
+        local class_box , class_score = class_result[{{},{1,4}}],class_result[{{},{5}}]--result.box, result.score
         --if class_box:numel() ==0 then return end
         --local class_num = tot_result[{iter,6}]
         local write_result = io.open(folder..'/'..'comp3_det_test_'..num2class(class_num)..'.txt',"a")
@@ -36,7 +39,7 @@ function write_txt(tot_result,folder,image_name)--,class_num)
 
             for iter2 = 1, class_box:size(1) do
             local box = class_box[{{iter2}}]:squeeze()
-            local score = class_score[iter2]
+            local score = class_score[iter2]:squeeze()
             write_result:write(image_id,' ',score,' ',box[1],' ',box[2],' ',box[3],' ',box[4],'\n' )
             bb_image = image.drawRect(bb_image,(box[1]),(box[2]),(box[3]),(box[4]))
             local label = num2class(class_num)--string.format('%s_%f',num2class(class_num),score)
@@ -53,9 +56,13 @@ function write_txt(tot_result,folder,image_name)--,class_num)
 ---------------------------------------------
 
 function test(net,list,folder)
+  local pretrain = torch.load('pretrain.net')
+  pretrain:evaluate()
   img_save_iter =1
   
   local i1 = os.time()
+  
+  
   net:evaluate()
   
   print('testing..')
@@ -96,6 +103,7 @@ function test(net,list,folder)
     end
           -----------
           --forward--
+   input_tensor = pretrain:forward(input_tensor:cuda())
    local output =net:forward(input_tensor:cuda()):float()
    local conf_before_softmax = output[{{},{1,21}}]:transpose(2,3):reshape(n*20097,21)
   local conf = softmax:forward(conf_before_softmax:cuda()):view(n,20097,21):exp():float()

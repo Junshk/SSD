@@ -290,8 +290,9 @@ end
 
  collectgarbage();
 net = cudnn.convert(net,cudnn):cuda()
-
-return net, pretrain0(base)
+local pretrain = cudnn.convert(pretrain0(base),cudnn):cuda()
+torch.save('pretrain.net',pretrain)
+return net
 
 end
 --cudnn.fastest = true

@@ -29,7 +29,7 @@ if paths.dirp('model') ==false then os.execute('mkdir model') end
 local net 
 local netname = opt.netname--basenet .. '_b'.. batch_size
 
---cudnn.convert(net,cudnn)
+
 local losses = {}
 local val_losses = {}
 local accuracies = {}
@@ -38,8 +38,9 @@ local start_iter = 1
 if paths.filep('model/'..netname..'_intm.net') == false then 
 opt.cont =false end
   
-  local net, pretrain =  make_net(opt.ch,opt.mul)
-  pretrain = cudnn.convert(pretrain,cudnn):cuda()
+  local net =  make_net(opt.ch,opt.mul)
+  pretrain = torch.load('pretrain.net')
+
   pretrain:evaluate()
 
   if opt.cont == true then
@@ -57,7 +58,6 @@ opt.cont =false end
 
 print(opt)
 net:training()
---net:cuda()
 print(net)
 print('training')
 
