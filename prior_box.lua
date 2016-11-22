@@ -102,9 +102,12 @@ local idx =1
 for iter = 1, #box_size do
 local matching_for_tensor 
 if iou == false then
+
   matching_for_tensor = torch.gt(jaccard_matrix(box_size[iter],gt),0.5)
 elseif iou == true then 
---print(box_size[iter])
+--print(box_size[iter]:size())
+--print('pboxgt',gt)
+
   matching_for_tensor = jaccard_matrix(box_size[iter],gt)
 --print(matching_for_tensor)
 end

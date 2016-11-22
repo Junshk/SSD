@@ -9,9 +9,9 @@ torch.setnumthreads(2)
 --------------------------------------------
 --------------------------------------------------------------
 function augment(img,anno_class)
-if random_data2 ~=true then 
+--if random_data2 ~=true then 
   math.randomseed(sys.clock())--os.time())
-end
+--end
 -- choose aug type
 ::otherOpt::
 local anno = anno_class[{{1,4},{}}]:clone()
@@ -20,7 +20,7 @@ local class = anno_class[{{5}}]:clone()
 local w, h = img:size(3), img:size(2)
 local aug_img
 local anno_xy = torch.Tensor(anno:size())
-local augType = math.random(3) ---------------------
+local augType = math.random(1)--3)--------------------
 local flip = math.random(2)
 
 local function new_patch()  
@@ -34,13 +34,22 @@ local function new_patch()
   return  crop_w,crop_h,crop_sx, crop_sy 
 end
 
+
+
+
+
   if augType == 1 then
   -- do nothing
 
 
   aug_img = img
+  
+  -- additional aug
+  aug_img = aug_img * math.random(0.9,1.0)
+  aug_img:clamp(0,255)
+
   else 
-    
+   math.randomseed(sys.clock()) 
     local  crop_w,crop_h,crop_sx, crop_sy = new_patch()
     
     local idx =1 
@@ -73,10 +82,10 @@ end
       local r_crop_w = math.min(w- crop_sx,crop_w)
       local r_crop_h = math.min(h- crop_sy,crop_h)
       aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
-      if chm == false then 
-        aug_img[{{1}}]:fill(b_mean)
+      if chm == true then 
+        aug_img[{{1}}]:fill(r_mean)
         aug_img[{{2}}]:fill(g_mean)
-        aug_img[{{3}}]:fill(r_mean)
+        aug_img[{{3}}]:fill(b_mean)
       end  
       aug_img:div(norm)
       
@@ -85,12 +94,12 @@ end
   end
 
 -----------------------------------------
+--print('in aug',anno)
 -- anno to ratio
 anno[{{1}}]:div(aug_img:size(3))
 anno[{{2}}]:div(aug_img:size(2))
 anno[{{3}}]:div(aug_img:size(3))
 anno[{{4}}]:div(aug_img:size(2))
---print(anno)
    local center_mask = torch.gt(anno[{{3}}],1) + torch.lt(anno[{{3}}],0) + torch.gt(anno[{{4}}],1) + torch.lt(anno[{{4}}],0)
    center_mask = 1- center_mask:clamp(0,1)
 
@@ -101,6 +110,7 @@ anno[{{4}}]:div(aug_img:size(2))
   assert(torch.sum(torch.lt(anno,0))==0) 
    anno = anno:view(4,-1)
    class = class:view(1,-1)
+   
    if truck == true then
    local xymin, xymax = anno[{{3,4}}]- anno[{{1,2}}]/2, anno[{{3,4}}]+anno[{{1,2}}]/2
 
@@ -117,10 +127,12 @@ anno[{{4}}]:div(aug_img:size(2))
     anno[{{3}}] = 1- anno[{{3}}]
   end
 
+
+
 --scale to 500 by 500
 
 aug_img = image.scale(aug_img,500,500)
-
+--[[
 t_num =1
 while paths.filep('conf/gt'..t_num..'.jpg') ==true do
 t_num = t_num+1
@@ -134,7 +146,7 @@ bb_img = image.drawRect(bb_img,x_,y_,xu,yu)
 bb_img = image.drawText(bb_img,num2class(class[{1,iter}]),x_,y_)
 end
 image.save('conf/gt'..t_num..'.jpg',bb_img)
-
+]]--
 --print('AG',augType)
 return aug_img, anno, class
  
@@ -173,33 +185,35 @@ anno_class[{{5},{iter}}] = class
 
 end
 
----input normalize
-if chm == true then
-img[{{1}}]=img[{{1}}]:csub(r_mean)
-img[{{2}}]=img[{{2}}]:csub(g_mean)
-img[{{3}}]=img[{{3}}]:csub(b_mean)
---print(img)
-end
-if bgr == true then
-local vgg_img = torch.Tensor(img:size())
-
-vgg_img[{{3}}] = (img[{{1}}])--:float())
-vgg_img[{{2}}] = (img[{{2}}])--:float())
-vgg_img[{{1}}] = (img[{{3}}])--:float())
-img =vgg_img
-elseif bgr ==false then
-end
----
-
-img:div(norm)
 --- augmentation
 local aug_img,aug_anno,aug_class = augment(img,anno_class)
 
 if aug_img == nil then goto re end
 
+---input normalize
+if chm == true then
+aug_img[{{1}}]:csub(r_mean)
+aug_img[{{2}}]:csub(g_mean)
+aug_img[{{3}}]:csub(b_mean)
+--print(img)
+end
+if bgr == true then
+local vgg_img = torch.Tensor(aug_img:size())
 
- assert(torch.sum(torch.eq(aug_anno[{{2}}],0))==0)
-return aug_img, aug_anno, aug_class
+vgg_img[{{3}}] = (aug_img[{{1}}])--:float())
+vgg_img[{{2}}] = (aug_img[{{2}}])--:float())
+vgg_img[{{1}}] = (aug_img[{{3}}])--:float())
+aug_img =vgg_img
+elseif bgr ==false then
+end
+---
+
+  aug_img:div(norm)
+
+  --print(aug_anno,aug_class)
+  assert(torch.sum(torch.eq(aug_anno[{{2}}],0))==0)
+  return aug_img, aug_anno, aug_class
+
 end
 -------------------------------------------------------------------------
 
@@ -207,7 +221,7 @@ end
 local prior_whcxy = real_box_ratio:clone()
 
 function make_default_anno(anno,class)--/////////////////// input cxy
-
+--print('p',anno)
 local anno_default = prior_whcxy:clone()
 local class_default = torch.Tensor(1,20097):fill(21)
 local gt_xymm = torch.Tensor(anno:size())
@@ -218,50 +232,58 @@ local gt_xymm = torch.Tensor(anno:size())
  
 
 local anno_n = anno:size(2)
-local perm = torch.randperm(anno_n):long()
-anno = anno:index(2,perm)
-class = class:index(2,perm)
+--local perm = torch.randperm(anno_n):long()
+--anno = anno:index(2,perm)
+--class = class:index(2,perm)
 
 local iou_annos = torch.Tensor(anno_n,20097):fill(0)
 local unused = torch.ByteTensor(20097):fill(1)
 
 for iter = 1, anno_n do
 
-  local gt_xymm_iter = gt_xymm[{{},iter}];
-
-  
+  local gt_xymm_iter = gt_xymm[{{},iter}]:clone();
+ --print('GTXYMM',gt_xymm_iter) 
     iou_annos[{iter}] = matching_gt_matrix(gt_xymm_iter,500,true)---// xymm
    assert(torch.sum(torch.eq(anno[{{2},{iter}}],0))==0)
 end
 
-
+--print('a',anno[1])
 -- CLIPPING ANNO
 gt_xymm:clamp(0,1)
 anno[{{1}}] = gt_xymm[{{3}}] - gt_xymm[{{1}}]
 anno[{{2}}] = gt_xymm[{{4}}] - gt_xymm[{{2}}]
 anno[{{3}}] = gt_xymm[{{1}}]/2+gt_xymm[{{3}}]/2
 anno[{{4}}] = gt_xymm[{{2}}]/2+gt_xymm[{{4}}]/2
-
+--print(anno[1])
 -- max
+
+
 for iter = 1, anno_n do
-  local iter_anno = torch.cmul(iou_annos[iter],unused:float())
-  local v,id =torch.max(iter_anno,1)
+  local iter_anno = iou_annos[iter] + unused:float()
+    local v,id =torch.max(iter_anno,1)
+ -- print(torch.sum(torch.ne(iter_anno,1)))
+ -- print(iter_anno[torch.ne(iter_anno,1)])
   id = id:squeeze()
-  
+  --print('id',id,v)
   anno_default[{{},id}] = anno[{{},iter}]
   class_default[{{},id}] = class[{{},iter}]
   unused[id] = 0 
 end
+
 -- rest
 local v, id = torch.max(iou_annos,1)
 local foreground = torch.gt(v,0.5)
 unused:cmul(foreground)  
-id = id[unused]
+--id = id[unused]
+id =id:squeeze()
 
-if id:numel()~= 0 then
-anno_default[unused:view(1,-1):expand(anno_default:size())] =
-anno:index(2,id:long())
-class_default[unused] = class:index(2,id)
+for iter = 1,(unused):size(1) do
+  if unused[iter] == 1 then
+--print(anno:size(),id:size())
+anno_default[{{},{iter}}] =anno[{{},{ id[iter]}}]--unused:view(1,-1):expand(anno_default:size())] =
+--anno:index(2,id:long())
+class_default[{{},{iter}}] = class[{{},{id[iter]}}]--unused] = class:index(2,id)
+  end
 end
 
 
@@ -275,23 +297,24 @@ end
 function patchFetch(batch_size,ImgInfo)
 local default_size = 20097
 local input_images = torch.Tensor(batch_size,3,500,500)
-local target_anno =  torch.Tensor(batch_size,4,default_size)
-local target_class = torch.Tensor(batch_size,1,default_size):fill(21)--1~21
-math.randomseed(os.time())
+local target =  torch.Tensor(batch_size,5,default_size)
+--local target_class = torch.Tensor(batch_size,1,default_size):fill(21)--1~21
+target[{{},{5},{}}]:fill(21)
+--math.randomseed(os.time())
 
 for iter =1,batch_size do
 
-local augmentedImg, aug_anno, aug_class= dataload(ImgInfo) -- for a image
+  local augmentedImg, aug_anno, aug_class= dataload(ImgInfo) -- for a image
 -- default box matching !!
 ---- thanks to jihong,
  
   local anno_default, class_default = make_default_anno(aug_anno,aug_class)
+  
   local mask = torch.eq((anno_default[{{2}}]),0) 
 --------------------------------------------------
   if torch.sum(mask) >0 then print(anno_default[mask:expand(4,20097)]:view(4,-1));assert(nil) end
 
 anno_default[{{3,4}}]:csub(prior_whcxy[{{3,4}}])
-if Sub == true then anno_default[{{1,2}}]:csub(prior_whcxy[{{1,2}}]) end
 anno_default[{{3,4}}]:cdiv(prior_whcxy[{{1,2}}])
 anno_default[{{1,2}}]:cdiv(prior_whcxy[{{1,2}}])
 if logarithm == true then   
@@ -301,18 +324,12 @@ if logarithm == true then
 anno_default[{{1,2}}]:mul(var_w)
 anno_default[{{3,4}}]:mul(var_x)
 ----------------------------------------------
-target_anno[{{iter}}] = anno_default -- - prior_whcxy-- w,h cx,cy
-target_class[{{iter}}] = class_default
+target[{{iter },{1,4}}] = anno_default
+target[{{iter},{5}}] = class_default
 input_images[{{iter}}] = augmentedImg
 
 end
 
-local target = {}
-
-target[1] = target_class;
-target[2] = target_anno; --ratio 
-
---print(target[2][{{1,4},{},{1,4}}])
 return input_images,target
 end
 

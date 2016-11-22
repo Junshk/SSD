@@ -35,21 +35,24 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local loss = 0
   local batch ; if input:dim()==3 then batch= input:size(1) else batch=1 end
 
-  local element = torch.numel(target[1])
-  local negative_mask = torch.eq(target[1],21)
+  local input1 , input2 = bat2wo(input[{{},{1,21}}]),bat2wo(input[{{},{22,25}}])
+  local target1, target2 =bat2wo(target[{{},{5}}]):cuda(), bat2wo(target[{{},{1,4}}]):cuda()
+ 
+
+
+  local element = torch.numel(target1)
+  local negative_mask = torch.eq(target1,21):byte()
   local positive_num = element-torch.sum(negative_mask)
   local negative_num = math.min(element-positive_num,positive_num*3)
   local discard_negative_num = (element)-positive_num-negative_num
   local discard_mask, bd_conf
   local nomatch_mask
 
-  local input1 , input2 = bat2wo(input[{{},{1,21}}]),bat2wo(input[{{},{22,25}}])
-  local target1, target2 =bat2wo(target[1]), bat2wo(target[2])
   negative_mask = bat2wo(negative_mask)
   
   local logsoftmax_score = softmax:forward(input1:cuda()):float()
   local softmax_score = torch.exp(logsoftmax_score)
-  local softmax_result = softmax_score[{{},{21}}]
+  local softmax_result,ix_ = torch.max(softmax_score[{{},{1,20}}],2)
   input1:float()
 
 
@@ -57,9 +60,9 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 
 -------------------------------------------------------------------------
 
+  local score, k = torch.topk(torch.csub(softmax_result,negative_mask:float()*2),discard_negative_num,1,false,true)
 
-  local score, k = torch.topk(torch.add(softmax_result,negative_mask:float()*2),discard_negative_num,1,true,true)
-print('score bg',score[{discard_negative_num}]:squeeze()-2)
+print('score bg',score[{discard_negative_num}]:squeeze()+2)
   discard_mask = torch.ByteTensor(softmax_result:size()):fill(0)
 if k:numel() ~= discard_negative_num then assert(nil) end
 for iter = 1, discard_negative_num do
@@ -85,7 +88,7 @@ local n_match_mask = torch.cmul(match_mask,negative_mask)
 local n_match_num = torch.sum(n_match_mask)
 --print(input1_max[{{20094,20097}}],target1[{{20094,20097}}])assert(match_num==p_match_num+n_match_num,match_num..'=='..p_match_num..'+'..n_match_num)
 --------------------------------
-  local dl_dx_loc = torch.Tensor(target2)
+  local dl_dx_loc 
   local dl_dx_conf 
 
   local loss_conf ,loss_loc = 0,0
@@ -99,17 +102,14 @@ local n_match_num = torch.sum(n_match_mask)
   dl_dx_conf_ = nll:backward(logsoftmax_score:cuda(),target1:squeeze():cuda()) 
   dl_dx_conf_[discard_mask:expand(dl_dx_conf_:size())] = 0 
   dl_dx_conf = softmax:backward(input1:cuda(),dl_dx_conf_:cuda()):float()
-   target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)]  
+  
+   target2[negative_mask:expand(target2:size())] =0
+  --target2[negative_mask:expand(target2:size())]= 
+  input2[negative_mask:expand(input2:size())] = 0
   loss_loc = L1loss:forward((input2):cuda(),(target2):cuda())*lambda
   dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
   dl_dx_loc[negative_mask:expand(dl_dx_loc:size())]= 0
  
---  input2 = nil ;
-  target2:float();
-  input2:float()
---  input1 = nil;
-  input1:float()
-  target1:float();
 --discard conf
   dl_dx_loc:cmul((1-negative_mask):expand(dl_dx_loc:size()):float())
 
@@ -126,9 +126,10 @@ local n_match_num = torch.sum(n_match_mask)
   if n ==0 then loss_conf =0; loss_loc =0; dl_dx:fill(0) ; n = 0 end
   --local accuracy = match_num*100
   local _,max_exc_21 = torch.max(input1[{{},{1,20}}],2)
-  local p_match_exc21_mask = torch.eq(max_exc_21,target1:long())
-  local accuracy = torch.sum(torch.cmul(p_match_exc21_mask,torch.gt(_,0.01)))*100
-  local accuracy_n = torch.sum(torch.gt(_,0.01):cmul(1-negative_mask))
+  --print(torch.type(p_match_exc21_mask),torch.type(_))
+  local p_match_exc21_mask = torch.eq(max_exc_21:long(),target1:long())
+  local accuracy = torch.sum(torch.cmul(p_match_exc21_mask:long(),torch.gt(_,0.01):long()))*100
+  local accuracy_n = torch.sum(torch.gt(_,0.01):long():cmul((1-negative_mask):long()))
   
   print('loss',loss_conf, loss_loc)
   print('match',p_match_num,n_match_num,match_num)
