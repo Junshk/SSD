@@ -79,7 +79,7 @@ function test_tensor(tensor,image_tensor,folder)
   refined_box[{{},{3,4}}]:cmul(expand[{{},{1,2}}])
   refined_box[{{},{1,2}}]:cmul(expand[{{},{1,2}}])
   refined_box[{{},{3,4}}]:add(expand[{{},{3,4}}])
-  if Sub == true then refined_box[{{},{1,2}}]:add(expand[{{},{1,2}}]) end  
+ --if Sub == true then refined_box[{{},{1,2}}]:add(expand[{{},{1,2}}]) end  
   refined_box = refined_box --+ real_box_ratio:view(1,4,20097):expand(n,4,20097)
   refined_box =refined_box:transpose(2,3)
   -- nms
@@ -222,8 +222,9 @@ function test(net,list,folder)
     local image_name = list[iter_image+start_iter-1].image_name
     local size = image.load(image_name..'.jpg'):size()
     
-    local tot_output = torch.Tensor()
-    
+    local tot_output = torch.Tensor(201*20,6)
+    local output_iter = 1
+
     for iter_class =1, 20 do
       -- ::pass::
     --local res = {}
@@ -244,23 +245,28 @@ function test(net,list,folder)
     --nms
    -- res.box, res.score 
     local output = nms(detection_box,0.45,detection_score,size)
+    
+    if output:numel() ~= 0 then
     output[{{},{6}}] = iter_class
-
-    if tot_output:numel() ==0 then tot_output = output
-    else tot_output = torch.cat({tot_output,output},1) end
+    tot_output[{{output_iter,output_iter+output:size(1)-1}}] = output
+    output_iter = output_iter + output:size(1)
+    end
     
     detection_box = nil
     detection_score = nil
     collectgarbage()
     
     ::pass::    
-    end
-    
+    end -- iter class
+   
+    if output_iter == 1 then
+      tot_output = torch.Tensor()
+    else  
+    tot_output = tot_output[{{1,output_iter-1}}]
     -- discard wo 200 
     local _,sort_idx  = tot_output[{{},5}]:sort(1,true)
-    local size_idx = sort_idx:size(1)
-    tot_output = tot_output:index(1,sort_idx[{{1,math.max(size_sort,200)}}])
-    
+    tot_output = tot_output:index(1,sort_idx[{{1,math.max(output_iter-1,200)}}])
+    end
 
     write_txt(tot_output,folder,image_name)--(res, folder,iter_class)
     
