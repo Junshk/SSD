@@ -68,7 +68,8 @@ top[{{1}}] = (center_x-box_width/2)
 top[{{2}}] = (center_y-box_height/2)
 top[{{3}}] = (center_x+box_width/2)
 top[{{4}}] = (center_y+box_height/2)
---top:clamp(0,1)
+top:clamp(0,img_size)
+
 return top
 end
 
@@ -82,7 +83,7 @@ local t5 = prior_box(500,4,{max=395,min=315},{2,3})
 local t6 = prior_box(500,2,{max=475,min=395},{2,3})
 local t7 = prior_box(500,1,{max=555,min=475},{2,3})
 
-function total_box(img_size) -- ratio or real size  image, xymin xymax
+local function total_box(img_size) -- ratio or real size  image, xymin xymax
 local div = 1
 if img_size ~=nil then div = img_size end
 
