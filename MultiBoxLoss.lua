@@ -95,12 +95,22 @@ local n_match_num = torch.sum(n_match_mask)
   
  
 -- forward
+--print(target1:size(),discard_mask:size())
+  local conf_mask = torch.ByteTensor(input1:size()):fill(1) -- no use
+  for i = 1, conf_mask:size(1) do
+    if target1[i]:squeeze() < 21 then 
+      conf_mask[{{i},target1[{{i}}]}] = 0
+    elseif discard_mask[i]:squeeze() == 0 then
+      conf_mask[{{i},{21}}] = 0
+    end
+  end  
+
 
 --  loss_conf = CrossEntropy:forward((input1):cuda(),(target1):cuda())
-  logsoftmax_score[discard_mask:expand(logsoftmax_score:size())] = 0
+  logsoftmax_score[conf_mask] = 0
   loss_conf = nll:forward((logsoftmax_score):cuda(),(target1:squeeze()):cuda())
   dl_dx_conf_ = nll:backward(logsoftmax_score:cuda(),target1:squeeze():cuda()) 
-  dl_dx_conf_[discard_mask:expand(dl_dx_conf_:size())] = 0 
+  dl_dx_conf_[conf_mask] = 0 
   dl_dx_conf = softmax:backward(input1:cuda(),dl_dx_conf_:cuda()):float()
   
    target2[negative_mask:expand(target2:size())] =0
@@ -121,7 +131,7 @@ local n_match_num = torch.sum(n_match_mask)
   
 
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
-  local n = (positive_num+negative_num) ;  
+  local n = (positive_num)--+negative_num) ;  
   
   if n ==0 then loss_conf =0; loss_loc =0; dl_dx:fill(0) ; n = 0 end
   --local accuracy = match_num*100
@@ -137,7 +147,7 @@ local n_match_num = torch.sum(n_match_mask)
   print('np',positive_num,negative_num,discard_negative_num)
   print(' ')
   
-  if loss_conf+loss_loc>1e+5*(n+2) then assert(nil,'huge loss') end 
+--  if loss_conf+loss_loc>1e+5*(n+2) then assert(nil,'huge loss') end 
   assert(match_num<=positive_num+negative_num, 'wrong match_num '..match_num..' '..positive_num.. ' '..negative_num..' '..discard_negative_num)
   assert(positive_num+negative_num+discard_negative_num == element)
   
