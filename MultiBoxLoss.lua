@@ -107,12 +107,13 @@ local n_match_num = torch.sum(n_match_mask)
 
 
 --  loss_conf = CrossEntropy:forward((input1):cuda(),(target1):cuda())
-  logsoftmax_score[conf_mask] = 0
+  logsoftmax_score[discard_mask:expand(logsoftmax_score:size())] = 0
   loss_conf = nll:forward((logsoftmax_score):cuda(),(target1:squeeze()):cuda())
   dl_dx_conf_ = nll:backward(logsoftmax_score:cuda(),target1:squeeze():cuda()) 
-  dl_dx_conf_[conf_mask] = 0 
+  dl_dx_conf_[discard_mask:expand(dl_dx_conf_:size())] = 0 
   dl_dx_conf = softmax:backward(input1:cuda(),dl_dx_conf_:cuda()):float()
-  
+  dl_dx_conf[discard_mask:expand(dl_dx_conf_:size())] = 0 
+
    target2[negative_mask:expand(target2:size())] =0
   --target2[negative_mask:expand(target2:size())]= 
   input2[negative_mask:expand(input2:size())] = 0
