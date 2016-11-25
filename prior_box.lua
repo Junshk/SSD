@@ -64,11 +64,11 @@ local center_x = (x_matrix-0.5)*step_x;
 local center_y = (y_matrix-0.5)*step_y;
 --print(center_x:size(),box_width:size(),box_height:size(),w_matrix:size()) 
 
-top[{{1}}] = (center_x-box_width/2)
-top[{{2}}] = (center_y-box_height/2)
-top[{{3}}] = (center_x+box_width/2)
-top[{{4}}] = (center_y+box_height/2)
-top:clamp(0,img_size)
+top[{{1}}] = (center_x-box_width/2):clamp(0,img_size.w)
+top[{{2}}] = (center_y-box_height/2):clamp(0,img_size.h)
+top[{{3}}] = (center_x+box_width/2):clamp(0,img_size.w)
+top[{{4}}] = (center_y+box_height/2):clamp(0,img_size.h)
+--top:clamp(0,img_size)
 
 return top
 end
