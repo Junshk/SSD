@@ -35,6 +35,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local loss = 0
   local batch ; if input:dim()==3 then batch= input:size(1) else batch=1 end
 
+  local t1 = sys.clock()
   local input1 , input2 = bat2wo(input[{{},{1,21}}]),bat2wo(input[{{},{22,25}}])
   local target1, target2 =bat2wo(target[{{},{5}}]):cuda(), bat2wo(target[{{},{1,4}}]):cuda()
  
@@ -49,20 +50,20 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local nomatch_mask
 
   negative_mask = bat2wo(negative_mask)
-  
+-- print(input1:size()) 
   local logsoftmax_score = softmax:forward(input1:cuda()):float()
   local softmax_score = torch.exp(logsoftmax_score)
   local softmax_result,ix_ = torch.max(softmax_score[{{},{1,20}}],2)
   input1:float()
 
+  local t2 = sys.clock()
 
   assert(torch.sum(torch.ne(input1,input1) )==0 , 'nan in  input1')
 
 -------------------------------------------------------------------------
-
   local score, k = torch.topk(torch.csub(softmax_result,negative_mask:float()*2),discard_negative_num,1,false,true)
 
-print('score bg',score[{discard_negative_num}]:squeeze()+2)
+--print('score bg',score[{discard_negative_num}]:squeeze()+2)
   discard_mask = torch.ByteTensor(softmax_result:size()):fill(0)
 if k:numel() ~= discard_negative_num then assert(nil) end
 for iter = 1, discard_negative_num do
@@ -83,8 +84,10 @@ discard_mask:cmul(negative_mask)
   local match_num = torch.sum(match_mask)
   local p_match_num = torch.sum(p_match_mask)
 
-local n_match_mask = torch.cmul(match_mask,negative_mask)
-local n_match_num = torch.sum(n_match_mask)
+  local t3= sys.clock()
+
+--local n_match_mask = torch.cmul(match_mask,negative_mask)
+--local n_match_num = torch.sum(n_match_mask)
 --------------------------------
   local dl_dx_loc 
   local dl_dx_conf 
@@ -118,14 +121,14 @@ local n_match_num = torch.sum(n_match_mask)
   dl_dx_loc[negative_mask:expand(dl_dx_loc:size())]= 0
  
 --discard conf
-  dl_dx_loc:cmul((1-negative_mask):expand(dl_dx_loc:size()):float())
+  --dl_dx_loc:cmul((1-negative_mask):expand(dl_dx_loc:size()):float())
 
 --resize
 
   dl_dx_loc = wo2bat(dl_dx_loc,batch)
   dl_dx_conf = wo2bat(dl_dx_conf,batch)
  
-  
+  local t4 = sys.clock()
 
   local dl_dx = torch.cat({dl_dx_conf,dl_dx_loc},2)
   local n = (positive_num)--+negative_num) ;  
@@ -137,17 +140,17 @@ local n_match_num = torch.sum(n_match_mask)
   local accuracy = torch.sum(torch.cmul(p_match_exc21_mask:long(),torch.gt(_,0.01):long()))*100
   local accuracy_n = torch.sum(torch.gt(_,0.01):long():cmul((1-negative_mask):long()))
   
-  print('loss',loss_conf, loss_loc)
-  print('match',p_match_num,n_match_num,match_num)
-  print('except 21',torch.sum(p_match_exc21_mask))
-  print('np',positive_num,negative_num,discard_negative_num)
-  print(' ')
-  
+--  print('loss',loss_conf, loss_loc)
+--  print('match',p_match_num,n_match_num,match_num)
+--  print('except 21',torch.sum(p_match_exc21_mask))
+--  print('np',positive_num,negative_num,discard_negative_num)
+--  print(' ')
+  local t5 =sys.clock()
 --  if loss_conf+loss_loc>1e+5*(n+2) then assert(nil,'huge loss') end 
   assert(match_num<=positive_num+negative_num, 'wrong match_num '..match_num..' '..positive_num.. ' '..negative_num..' '..discard_negative_num)
   assert(positive_num+negative_num+discard_negative_num == element)
   
-  
+--  print(t1,t2,t3,t4,t5)
   --local negative_match_mask = torch.eq(input1_max,21):cmul(negative_mask)
   --local negative_match_num = torch.sum(negative_match_mask)
   collectgarbage();
