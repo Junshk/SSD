@@ -42,7 +42,8 @@ opt.cont =false end
     end
  end
 ----------------
-require 'training'
+--require 'training'
+require 'Train'
 require 'donkey'
 net:training()
 training()

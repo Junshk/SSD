@@ -17,6 +17,8 @@ b_mean = 103.939
 weighted21 =false
 random_data2 = true
 
+data_num = 7e4
+
 print(var_w,var_x,norm,logarithm,bgr,truck)
 -----------------------
 
@@ -24,7 +26,7 @@ local i =1000
  Option =
 {
   
-  netname = 'vgg_SSD500_check'
+  netname = 'vgg_SSD500_1125_aug3'
 ,  plot_iter =50,end_iter = 80*1000,
   print_iter=1,save_iter=100,
   test_iter = i,

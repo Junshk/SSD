@@ -20,7 +20,7 @@ local class = anno_class[{{5}}]:clone()
 local w, h = img:size(3), img:size(2)
 local aug_img
 local anno_xy = torch.Tensor(anno:size())
-local augType = math.random(1)--3)--------------------
+local augType = math.random(3)--------------------
 local flip = math.random(2)
 
 local function new_patch()  
@@ -154,9 +154,7 @@ return aug_img, anno, class
 end
 
 function dataload(ImgInfo) -- with normalize
-if random_data2 ~=true then
-math.randomseed(os.time())
-end
+math.randomseed(sys.clock()*100)
 ::re::
 local fetchNum = math.random(1,#ImgInfo) 
 

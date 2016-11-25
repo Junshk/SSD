@@ -73,7 +73,6 @@ discard_mask:cmul(negative_mask)
  if torch.sum(discard_mask) ~= discard_negative_num then 
    assert(nil,discard_negative_num..' '..torch.sum(discard_mask)) end 
 --discard, remove loc of 21(bg) 
---  target2[negative_mask:expandAs(target2)]= input2[negative_mask:expandAs(input2)]   
   
   local _, input1_max = torch.max(softmax_score:float(),2)
 
@@ -86,7 +85,6 @@ discard_mask:cmul(negative_mask)
 
 local n_match_mask = torch.cmul(match_mask,negative_mask)
 local n_match_num = torch.sum(n_match_mask)
---print(input1_max[{{20094,20097}}],target1[{{20094,20097}}])assert(match_num==p_match_num+n_match_num,match_num..'=='..p_match_num..'+'..n_match_num)
 --------------------------------
   local dl_dx_loc 
   local dl_dx_conf 
@@ -95,7 +93,6 @@ local n_match_num = torch.sum(n_match_mask)
   
  
 -- forward
---print(target1:size(),discard_mask:size())
   local conf_mask = torch.ByteTensor(input1:size()):fill(1) -- no use
   for i = 1, conf_mask:size(1) do
     if target1[i]:squeeze() < 21 then 
@@ -115,7 +112,6 @@ local n_match_num = torch.sum(n_match_mask)
   dl_dx_conf[discard_mask:expand(dl_dx_conf_:size())] = 0 
 
    target2[negative_mask:expand(target2:size())] =0
-  --target2[negative_mask:expand(target2:size())]= 
   input2[negative_mask:expand(input2:size())] = 0
   loss_loc = L1loss:forward((input2):cuda(),(target2):cuda())*lambda
   dl_dx_loc =  L1loss:backward((input2):cuda(),(target2):cuda()):float()*lambda
@@ -137,7 +133,6 @@ local n_match_num = torch.sum(n_match_mask)
   if n ==0 then loss_conf =0; loss_loc =0; dl_dx:fill(0) ; n = 0 end
   --local accuracy = match_num*100
   local _,max_exc_21 = torch.max(input1[{{},{1,20}}],2)
-  --print(torch.type(p_match_exc21_mask),torch.type(_))
   local p_match_exc21_mask = torch.eq(max_exc_21:long(),target1:long())
   local accuracy = torch.sum(torch.cmul(p_match_exc21_mask:long(),torch.gt(_,0.01):long()))*100
   local accuracy_n = torch.sum(torch.gt(_,0.01):long():cmul((1-negative_mask):long()))
@@ -153,8 +148,8 @@ local n_match_num = torch.sum(n_match_mask)
   assert(positive_num+negative_num+discard_negative_num == element)
   
   
-  local negative_match_mask = torch.eq(input1_max,21):cmul(negative_mask)
-  local negative_match_num = torch.sum(negative_match_mask)
+  --local negative_match_mask = torch.eq(input1_max,21):cmul(negative_mask)
+  --local negative_match_num = torch.sum(negative_match_mask)
   collectgarbage();
   
    return (loss_conf+loss_loc), dl_dx,n , accuracy, accuracy_n

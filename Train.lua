@@ -19,11 +19,17 @@ weightDecay = 0.0005
 }
 local iteration 
 local batch_num 
-local data_num = data_num--5e4
+local data_num = 5e4
 --local extract_idx = torch.randperm(data_num)
 local opt = Option
 local batch_size = opt.batch_size
 local multi_batch = opt.multi_batch 
+
+
+local inputs = torch.Tensor(batch_size,3,500,500)
+local targets = torch.Tensor(batch_size,5,20097)
+local batch_idx = 1
+
 
 
 function training()
@@ -32,68 +38,14 @@ math.randomseed(os.time())
 print(opt)
 print(net)
 print('training')
-batch_num = 1
-iteration = start_iter
-
-for iter = start_iter, opt.end_iter do
-  donkeys:addjob(
-                 function()
-                 --torch.manualSeed(os.time())
-                 local inputs, targets = torch.Tensor(batch_size,3,500,500), torch.Tensor(batch_size,5,20097)
-                 
-                 local idx = torch.randperm(data_num)
-                 local name_i = 0
-                 for i = 1, batch_size do
-                 
-             
-                 name_i = name_i + 1 
-                 while paths.filep('data/SSDdata_'..idx[name_i]..'.t7') == false do name_i = name_i +1 end
-                 local data_name = 'data/SSDdata_'..idx[name_i]..'.t7'
-                 --print(idx[name_i])
-                 
-
-                 local data = torch.load(data_name)
-                 
-                 
-                 inputs[{{i}}] = data.input
-                 targets[{{i}}] = data.target
-                 data = nil
-
-                 end
-                 collectgarbage()
-                 --inputs = pretrain:forward(inputs:cuda()):float()
-                 return inputs, targets
-                 end,
-                 trainBatch
-                 
-                 )
-  end
-donkeys:synchronize()
-
-
-  net:clearState()
-
-  torch.save('model/accof'..netname..'.t7',accuracies)
-  torch.save('model/'..netname..'.net',net)
-  torch.save('model/lossof'..netname..'.t7',losses)
-
-print('training end')
-
-end
 
 local params, grads = net:getParameters()
 
+local feval = function(x)
 
-function trainBatch(inputsCPU,targetsCPU)
-collectgarbage()
-local input = torch.CudaTensor()
-local target = torch.FloatTensor()
-
-
-input:resize(inputsCPU:size()):copy(inputsCPU)
-target:resize(targetsCPU:size()):copy(targetsCPU)
-inputsCPU =nil
-targetsCPU = nil
+if x ~= params then
+        params:copy(x)
+        end
 
 local f =0
 local acc =0
@@ -102,26 +54,20 @@ local PN =0
 local acc_n =0
 
 
-feval = function(x)
-
-if x ~= params then
-        params:copy(x)
-        end
-
 
 grads:zero()
 
 
-assert(torch.sum(torch.ne(input,input))==0 , 'nan in input')
+assert(torch.sum(torch.ne(inputs,inputs))==0 , 'nan in input')
 
-input = pretrain:forward(input:cuda())
-local output = net:forward(input:cuda())
-input = input:float()
+input_af = pretrain:forward(inputs:cuda())
+local output = net:forward(input_af:cuda())
+inputs = inputs:float()
 
 -----------------------------------
 assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
 
-local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output,target,opt.lambda)
+local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output,targets,opt.lambda)
 output = output:float()
 
 
@@ -130,11 +76,11 @@ boxN = boxN +N
 acc = acc +accuracy
 acc_n = acc_n +accuracy_n
 
-net:backward(input:cuda(),df_dx:cuda())
+net:backward(input_af:cuda(),df_dx:cuda())
 
 --end -- for end
-input =nil
-target =nil
+input_af =nil
+--targets =nil
 output = nil
 collectgarbage()
 if boxN ==0 then 
@@ -150,10 +96,48 @@ end
 
 collectgarbage();
 end -- end local feval
--------------------------------------------
+
+
+for iteration = start_iter, opt.end_iter do
+
+for donkeyAdd = 1, batch_size do
+donkeys:addjob(
+                 function()
+                 torch.manualSeed(os.time())
+                 --math.randomseed(os.time())
+                 --local inputs, targets = torch.Tensor(batch_size,3,500,500), torch.Tensor(batch_size,5,20097)
+                 local rand = torch.randperm(data_num+1)-1 
+                 ::resample::
+                 local idx = rand[donkeyAdd]--torch.randperm(data_num)
+                 local name_i = 0
+                 print(idx,donkeyAdd)
+                 
+             
+                  
+                 if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
+                 local data_name = 'data/SSDdata_'..idx..'.t7'
+                 
+
+                 local data = torch.load(data_name)
+                 
+                 
+                 input = data.input
+                 target = data.target
+                 
+                 
+                 collectgarbage()
+                 return input, target, donkeyAdd
+                 end
+                , 
+                 trainBatch
+                 
+                 )
+ end
+donkeys:synchronize()
+
  local _, loss = optim.sgd(feval,params,optimState)
   
-  batch_num = batch_num + batch_size
+ 
 
 
   if iteration == 60*1000 then optimState.learningRate = 1e-4 end
@@ -191,8 +175,31 @@ end -- end local feval
     gnuplot.plot({netname..'acc',torch.range(1,#accuracies),torch.Tensor(accuracies),'-'})
   end
 
- iteration = iteration + 1 
 end
+  net:clearState()
+
+  torch.save('model/accof'..netname..'.t7',accuracies)
+  torch.save('model/'..netname..'.net',net)
+  torch.save('model/lossof'..netname..'.t7',losses)
+
+print('training end')
+
+end
+------------------------------------
+function trainBatch(inputCPU,targetCPU,donkeyAdd)
+
+collectgarbage()
+
+
+inputs[{{donkeyAdd}}] = inputCPU
+targets[{{donkeyAdd}}] = targetCPU
+
+batch_idx = batch_idx + 1
+if batch_idx > batch_size  then batch_idx = 1 end
+
+end
+------------------------------------------
+-------------------------------------------
 
 
 
