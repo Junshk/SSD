@@ -189,10 +189,24 @@ function test(net,list,folder,opt)
     for iter = start_iter ,end_iter do
     local imagename = list[iter].image_name
 
-  
+  --preprocess
     local img = image.load(imagename..'.jpg')
+      img = image.scale(img,500,500)
+      img = img*255
+      img[{{1}}]:csub(r_mean)
+      img[{{2}}]:csub(g_mean)
+      img[{{3}}]:csub(b_mean)
 
-    input_tensor[{{iter-start_iter+1}}] = image.scale(img,500,500)
+      if bgr == true then 
+        local vgg_img = torch.Tensor(img:size())
+        vgg_img[{{1}}] = vgg_img[{{3}}]
+        vgg_img[{{2}}] = vgg_img[{{2}}]
+        vgg_img[{{3}}] = vgg_img[{{1}}]
+
+        img = vgg_img
+      end  
+
+    input_tensor[{{iter-start_iter+1}}] = img --image.scale(img,500,500)
   
     end
           -----------
