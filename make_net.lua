@@ -255,7 +255,10 @@ seq1:add(concat2)
 concat1:add(seq1)
 local ss = nn.Sequential()
 local cmul = nn.CMul(1,512,1,1):init('weight',nninit.constant,20)
-if ch==true then ss:add(nn.ChannelNormalization(2)) end
+if ch==true then 
+  ss:add(nn.ChannelNormalization(2)) 
+  --ss:add(nn.SpatialCrossMapLRN(512*2,512*2,1/2,0))
+  end
 if mul==true then ss:add(cmul) end
 
 concat1:add(ss)

@@ -1,10 +1,11 @@
 require 'etc'
+require 'option'
 -- make ratio of box position in realimg to regress
 -- prior is default box
 -- iterative function bb, const
 
 
-function prior_box(img_size,layer_size,min_max,aspect_ratios)  --xymm size for 500
+local function prior_box(img_size,layer_size,min_max,aspect_ratios)  --xymm size for 500
 if type(img_size) =='number' then img_size ={w=img_size,h=img_size}end
 if type(layer_size) =='number' then layer_size ={w=layer_size,h=layer_size}end
 
@@ -43,8 +44,6 @@ end
 box_width = torch.Tensor(box_width):view(num_priors,1,1):expand(num_priors,layer_size.h,layer_size.w)
 box_height = torch.Tensor(box_height):view(num_priors,1,1):expand(num_priors,layer_size.h,layer_size.w)
 
---box_width = box_width:repeatTensor(layer_size.h,layer_size.w,1)
---box_height = box_height:repeatTensor(layer_size.h,layer_size.w,1)
 ---------------------bbox_cxy----------------------------------
 local step_x = img_size.w / layer_size.w
 local step_y = img_size.h / layer_size.h
@@ -62,30 +61,30 @@ y_matrix = y_matrix:expand(num_priors,layer_size.h,layer_size.w)
 
 local center_x = (x_matrix-0.5)*step_x; 
 local center_y = (y_matrix-0.5)*step_y;
---print(center_x:size(),box_width:size(),box_height:size(),w_matrix:size()) 
 
 top[{{1}}] = (center_x-box_width/2):clamp(0,img_size.w)
 top[{{2}}] = (center_y-box_height/2):clamp(0,img_size.h)
 top[{{3}}] = (center_x+box_width/2):clamp(0,img_size.w)
 top[{{4}}] = (center_y+box_height/2):clamp(0,img_size.h)
---top:clamp(0,img_size)
 
 return top
 end
 
 -- example
 --print(prior_box({w=500,h=500},{w=4,h=3},{min=475,max=555},{2,3}))
-local t1 = prior_box(500,63,{min=35},{2})
-local t2= prior_box(500,32,{max=155,min=75},{2,3})
-local t3 = prior_box(500,16,{max=235,min=155},{2,3})
-local t4 = prior_box(500,8,{max=315,min=235},{2,3})
-local t5 = prior_box(500,4,{max=395,min=315},{2,3})
-local t6 = prior_box(500,2,{max=475,min=395},{2,3})
-local t7 = prior_box(500,1,{max=555,min=475},{2,3})
-
 local function total_box(img_size) -- ratio or real size  image, xymin xymax
 local div = 1
 if img_size ~=nil then div = img_size end
+
+
+local t1 = prior_box(img_size,63,{min=50},{2})
+local t2= prior_box(img_size,32,{max=170,min=100},{2,3})
+local t3 = prior_box(img_size,16,{max=240,min=170},{2,3})
+local t4 = prior_box(img_size,8,{max=310,min=240},{2,3})
+local t5 = prior_box(img_size,4,{max=380,min=310},{2,3})
+local t6 = prior_box(img_size,2,{max=450,min=380},{2,3})
+local t7 = prior_box(img_size,1,{max=520,min=450},{2,3})
+
 
 return {t7/img_size, t6 /img_size,t5/img_size, t4/img_size, t3/img_size ,t2/img_size, t1/img_size}
 end
@@ -152,5 +151,5 @@ if prior_clip == true then whcxy:clamp(0,1) end
 return whcxy
 end
 
-real_box_ratio = whcxy(500) --vectorize default box ratio
+real_box_ratio = whcxy(image_size) --vectorize default box ratio
 

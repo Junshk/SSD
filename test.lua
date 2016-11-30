@@ -145,7 +145,7 @@ function test_tensor(tensor,image_tensor,folder)
 
 end
 
-function test(net,list,folder)
+function test(net,list,folder,opt)
   
   if pretrain == nil then
     pretrain = torch.load('pretrain.net')
@@ -224,6 +224,7 @@ function test(net,list,folder)
     
     local tot_output = torch.Tensor(201*20,6)
     local output_iter = 1
+    local _, max_class = torch.max(conf[{iter_image}],2)
 
     for iter_class =1, 20 do
       -- ::pass::
@@ -231,8 +232,9 @@ function test(net,list,folder)
 --    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
      
     local conf_image_class = conf[{iter_image,{},{iter_class}}]
-    local index = torch.gt(conf_image_class,0.01)
- 
+    local index = torch.gt(conf_image_class,0.015)
+    if opt ~=nil then index = torch.eq(max_class,iter_class) end
+  
     local detection_box = refined_box[iter_image]
 
     detection_box =detection_box[index:expandAs(detection_box)]
@@ -265,7 +267,11 @@ function test(net,list,folder)
     tot_output = tot_output[{{1,output_iter-1}}]
     -- discard wo 200 
     local _,sort_idx  = tot_output[{{},5}]:sort(1,true)
-    tot_output = tot_output:index(1,sort_idx[{{1,math.max(output_iter-1,200)}}])
+  --  print(sort_idx)
+  --  print(output_iter,sort_idx:size(),tot_output:size())
+   -- print(math.max(output_iter-1,200))
+    sort_idx = sort_idx[{{1,math.min(output_iter-1,200)}}]
+    tot_output = tot_output:index(1,sort_idx)
     end
 
     write_txt(tot_output,folder,image_name)--(res, folder,iter_class)

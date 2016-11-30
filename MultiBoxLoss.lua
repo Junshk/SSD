@@ -86,8 +86,8 @@ discard_mask:cmul(negative_mask)
 
   local t3= sys.clock()
 
---local n_match_mask = torch.cmul(match_mask,negative_mask)
---local n_match_num = torch.sum(n_match_mask)
+local n_match_mask = torch.cmul(match_mask,negative_mask)
+local n_match_num = torch.sum(n_match_mask)
 --------------------------------
   local dl_dx_loc 
   local dl_dx_conf 
@@ -141,10 +141,10 @@ discard_mask:cmul(negative_mask)
   local accuracy_n = torch.sum(torch.gt(_,0.01):long():cmul((1-negative_mask):long()))
   
 --  print('loss',loss_conf, loss_loc)
---  print('match',p_match_num,n_match_num,match_num)
---  print('except 21',torch.sum(p_match_exc21_mask))
---  print('np',positive_num,negative_num,discard_negative_num)
---  print(' ')
+  print('match',p_match_num,n_match_num,match_num)
+  print('except 21',torch.sum(p_match_exc21_mask))
+  print('np',positive_num,negative_num,discard_negative_num)
+  print(' ')
   local t5 =sys.clock()
 --  if loss_conf+loss_loc>1e+5*(n+2) then assert(nil,'huge loss') end 
   assert(match_num<=positive_num+negative_num, 'wrong match_num '..match_num..' '..positive_num.. ' '..negative_num..' '..discard_negative_num)

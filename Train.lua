@@ -19,7 +19,7 @@ weightDecay = 0.0005
 }
 local iteration 
 local batch_num 
-local data_num = 5e4
+local data_num = data_num--5e4
 --local extract_idx = torch.randperm(data_num)
 local opt = Option
 local batch_size = opt.batch_size
@@ -29,11 +29,11 @@ local multi_batch = opt.multi_batch
 local inputs = torch.Tensor(batch_size,3,500,500)
 local targets = torch.Tensor(batch_size,5,20097)
 local batch_idx = 1
-
-
+torch.manualSeed(os.time())
+local rand = torch.randperm(data_num)-1
 
 function training()
-math.randomseed(os.time())
+--math.randomseed(os.time())
 ----------------------------
 print(opt)
 print(net)
@@ -100,21 +100,31 @@ end -- end local feval
 
 for iteration = start_iter, opt.end_iter do
 
+local rand_st = batch_size * (batch_idx - 1)
+
+if rand_st +batch_size > data_num then
+  batch_idx = 1
+  rand_st = batch_size *(batch_idx - 1)
+  torch.manualseed(os.time())
+  rand = torch.randperm(data_num) - 1
+end
+
 for donkeyAdd = 1, batch_size do
 donkeys:addjob(
                  function()
-                 torch.manualSeed(os.time())
-                 --math.randomseed(os.time())
-                 --local inputs, targets = torch.Tensor(batch_size,3,500,500), torch.Tensor(batch_size,5,20097)
-                 local rand = torch.randperm(data_num+1)-1 
-                 ::resample::
-                 local idx = rand[donkeyAdd]--torch.randperm(data_num)
+                
+                 local idx = rand[rand_st + donkeyAdd]--torch.randperm(data_num)
                  local name_i = 0
-                 print(idx,donkeyAdd)
+                 ::resample:: 
+               --  print(idx,donkeyAdd)
                  
              
                   
-                 if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
+                 if paths.filep('data/SSDdata_'..idx..'.t7') == false then 
+                   --math.randomseed(os.time());
+                   idx = math.random(data_num) 
+                   goto resample
+                 end
                  local data_name = 'data/SSDdata_'..idx..'.t7'
                  
 
@@ -133,8 +143,9 @@ donkeys:addjob(
                  
                  )
  end
-donkeys:synchronize()
-
+  donkeys:synchronize() 
+ batch_idx = batch_idx + 1
+ 
  local _, loss = optim.sgd(feval,params,optimState)
   
  

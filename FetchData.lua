@@ -24,7 +24,7 @@ local augType = math.random(3)--------------------
 local flip = math.random(2)
 
 local function new_patch()  
-  
+  math.randomseed(os.time())  
   local crop_size = 0.1+(1-0.1)*math.random()
   local aspect = math.pow(2,math.random(-1,1))
   local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w), 
@@ -45,7 +45,7 @@ end
   aug_img = img
   
   -- additional aug
-  aug_img = aug_img * math.random(0.9,1.0)
+  aug_img = aug_img * math.random(0.9,1.1)
   aug_img:clamp(0,255)
 
   else 
@@ -56,8 +56,8 @@ end
     if augType ==2 then 
     else
     repeat 
-    if idx>50 then goto otherOpt end   
-        --math.randomseed(sys.clock()*10) 
+    if idx>90 then goto otherOpt end   
+        math.randomseed(sys.clock()*100) 
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
 
@@ -154,7 +154,7 @@ return aug_img, anno, class
 end
 
 function dataload(ImgInfo) -- with normalize
-math.randomseed(sys.clock()*100)
+math.randomseed(sys.clock())
 ::re::
 local fetchNum = math.random(1,#ImgInfo) 
 
