@@ -59,7 +59,7 @@ local image_name = opt.info.image_name
 
 --		if idx%1000==0 then print(idx) end
 		local imgname = image_name:sub(1,-5)
---print(imgname)
+print(imgname)
 local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
 		
 		data.folder[idx] = folder

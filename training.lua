@@ -156,7 +156,8 @@ end -- end local feval
   batch_num = batch_num + batch_size
 
 
-  if iteration == 60*1000 then optimState.learningRate = 1e-4 end
+  if iteration == 70*1000 then optimState.learningRate = 1e-4 end
+--  if iteration == 90*1000 then optimState.learningRate = 1e-5 end   
      if iteration % opt.print_iter ==0 then 
         print('iter',iteration,'loss ',loss[1],'acc',accuracies[#accuracies])
 

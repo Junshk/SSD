@@ -348,7 +348,7 @@ end
 -- new list write
 
 
-local result = test(net,new_list,valid_folder..savename)
+local result = test(net,new_list,valid_folder..savename,true)
 
 
 end

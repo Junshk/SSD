@@ -11,7 +11,7 @@ cudnn.benchmark = true
 
 local nninit = require 'nninit'
 
-local function ConvInit(dim1,dim2,k,s,p)
+ function ConvInit(dim1,dim2,k,s,p)
 local k = k or 3
 local s = s or 1
 local p = p or math.floor(k/2)

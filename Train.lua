@@ -26,8 +26,8 @@ local batch_size = opt.batch_size
 local multi_batch = opt.multi_batch 
 
 
-local inputs = torch.Tensor(batch_size,3,500,500)
-local targets = torch.Tensor(batch_size,5,20097)
+local inputs = torch.CudaTensor(batch_size,3,500,500)
+local targets = torch.CudaTensor(batch_size,5,20097)
 local batch_idx = 1
 torch.manualSeed(os.time())
 local rand = torch.randperm(data_num)-1
@@ -62,7 +62,7 @@ assert(torch.sum(torch.ne(inputs,inputs))==0 , 'nan in input')
 
 input_af = pretrain:forward(inputs:cuda())
 local output = net:forward(input_af:cuda())
-inputs = inputs:float()
+--inputs = inputs:float()
 
 -----------------------------------
 assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
@@ -105,7 +105,7 @@ local rand_st = batch_size * (batch_idx - 1)
 if rand_st +batch_size > data_num then
   batch_idx = 1
   rand_st = batch_size *(batch_idx - 1)
-  torch.manualseed(os.time())
+  torch.manualSeed(os.time())
   rand = torch.randperm(data_num) - 1
 end
 
@@ -131,21 +131,21 @@ donkeys:addjob(
                  local data = torch.load(data_name)
                  
                  
-                 input = data.input
-                 target = data.target
-                 
-                 
+                 inputs[{{donkeyAdd}}]:copy( data.input)
+                 targets[{{donkeyAdd}}]:copy( data.target)
+                               
+                                     
                  collectgarbage()
-                 return input, target, donkeyAdd
+   --              return input, target, donkeyAdd
                  end
-                , 
-                 trainBatch
+ --               , 
+--                 trainBatch
                  
                  )
  end
   donkeys:synchronize() 
  batch_idx = batch_idx + 1
- 
+print(batch_idx) 
  local _, loss = optim.sgd(feval,params,optimState)
   
  
@@ -205,8 +205,8 @@ collectgarbage()
 inputs[{{donkeyAdd}}] = inputCPU
 targets[{{donkeyAdd}}] = targetCPU
 
-batch_idx = batch_idx + 1
-if batch_idx > batch_size  then batch_idx = 1 end
+--batch_idx = batch_idx + 1
+--if batch_idx > batch_size  then batch_idx = 1 end
 
 end
 ------------------------------------------

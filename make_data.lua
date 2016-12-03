@@ -26,10 +26,10 @@ if paths.filep(save_name) == true then goto continue end
 inputs, targets = patchFetch(bsz,img_Info_table)
 torch.save(save_name,{input = inputs, target= targets})
 
+print('data_'..iter..' saved')
 
 ::continue::
 iter = iter + 1 
-print('data_'..iter..' saved')
 if iter > limit_num then break; end
 end
 

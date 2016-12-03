@@ -140,7 +140,7 @@ local n_match_num = torch.sum(n_match_mask)
   local accuracy = torch.sum(torch.cmul(p_match_exc21_mask:long(),torch.gt(_,0.01):long()))*100
   local accuracy_n = torch.sum(torch.gt(_,0.01):long():cmul((1-negative_mask):long()))
   
---  print('loss',loss_conf, loss_loc)
+  print('loss',loss_conf, loss_loc)
   print('match',p_match_num,n_match_num,match_num)
   print('except 21',torch.sum(p_match_exc21_mask))
   print('np',positive_num,negative_num,discard_negative_num)

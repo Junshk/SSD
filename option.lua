@@ -38,7 +38,7 @@ local i =1000
   test_iter = i,
   batch_size = 12, multi_batch =2,
   valid =true,
-  cont =true--false
+  cont =true-- false
 , ch = true
 , mul = true
 , lambda =1
