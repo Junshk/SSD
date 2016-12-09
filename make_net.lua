@@ -58,18 +58,31 @@ parl:add(ConvInit(dim[iter_loc],4*6))
 end
 parl:add(ConvInit(dim[7],4*3))
 
-reshape:add(nn.Reshape(4,6*1))
-reshape:add(nn.Reshape(4,6*2*2))
-reshape:add(nn.Reshape(4,6*4*4))
-reshape:add(nn.Reshape(4,6*8*8))
-reshape:add(nn.Reshape(4,6*16*16))
-reshape:add(nn.Reshape(4,6*32*32))
-reshape:add(nn.Reshape(4,3*63*63))
-  
+local trans = nn.ParallelTable()--:add(nn.Reshape(-1,true))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+
+
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+
+
+
   
   locnet:add(parl)
+  locnet:add(trans)
   locnet:add(reshape)
-  locnet:add(nn.JoinTable(2,2))
+  locnet:add(nn.JoinTable(2,1))
 
 return locnet
 end
@@ -85,17 +98,33 @@ parl:add(ConvInit(dim[iter_conf],classes*6))
 end
 parl:add(ConvInit(dim[7],classes*3))
 
-reshape:add(nn.Reshape(classes,6*1))
-reshape:add(nn.Reshape(classes,6*2*2))
-reshape:add(nn.Reshape(classes,6*4*4))
-reshape:add(nn.Reshape(classes,6*8*8))
-reshape:add(nn.Reshape(classes,6*16*16))
-reshape:add(nn.Reshape(classes,6*32*32))
-reshape:add(nn.Reshape(classes,3*63*63))
+local trans = nn.ParallelTable()--:add(nn.Reshape(-1,true))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
+trans:add(nn.Transpose({2,3},{3,4}))
 
+
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+
+  
   confnet:add(parl)
+  confnet:add(trans)
   confnet:add(reshape)
-  confnet:add(nn.JoinTable(2,2))
+  confnet:add(nn.JoinTable(2,1))
+  
+  confnet:add(nn.Transpose({1,3}))
+  confnet:add(nn.LogSoftMax())
+  confnet:add(nn.Transpose({1,3}))
 
 return confnet
 end
@@ -282,7 +311,7 @@ local conf_net =conf(classes)
 concat:add(conf_net)
 concat:add(loc_net)
 loss_net:add(concat)
-loss_net:add(nn.JoinTable(2,1))
+--loss_net:add(nn.JoinTable(2,1))
 
 net:add(loss_net) -- 2 table output
 elseif base_name == 'residual' then

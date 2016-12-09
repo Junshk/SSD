@@ -16,9 +16,9 @@ bgr = true
 truck = true
 chm = true--false
 
-r_mean = 123.68
-g_mean = 116.779
-b_mean = 103.939
+r_mean = 123
+g_mean = 117
+b_mean = 104
 
 weighted21 =false
 random_data2 = true
@@ -32,13 +32,13 @@ local i =1000
  Option =
 {
   
-  netname = 'vgg_SSD500_1130'
+  netname = 'vgg_SSD500_1208_nocropPad'
 ,  plot_iter =50,end_iter = 100*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
-  batch_size = 12, multi_batch =2,
+  batch_size = 8, multi_batch =1,
   valid =true,
-  cont =true-- false
+  cont = true
 , ch = true
 , mul = true
 , lambda =1
@@ -55,3 +55,7 @@ if paths.filep('VGG16.net') ==false then
   dofile('utils/caffe.lua')
 end
 
+require 'pascal'
+img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
+img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
+img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)

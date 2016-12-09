@@ -62,33 +62,47 @@ y_matrix = y_matrix:expand(num_priors,layer_size.h,layer_size.w)
 local center_x = (x_matrix-0.5)*step_x; 
 local center_y = (y_matrix-0.5)*step_y;
 
-top[{{1}}] = (center_x-box_width/2):clamp(0,img_size.w)
-top[{{2}}] = (center_y-box_height/2):clamp(0,img_size.h)
-top[{{3}}] = (center_x+box_width/2):clamp(0,img_size.w)
-top[{{4}}] = (center_y+box_height/2):clamp(0,img_size.h)
+top[{{1}}]:copy(center_x-box_width/2):clamp(0,img_size.w)
+top[{{2}}]:copy(center_y-box_height/2):clamp(0,img_size.h)
+top[{{3}}]:copy(center_x+box_width/2):clamp(0,img_size.w)
+top[{{4}}]:copy(center_y+box_height/2):clamp(0,img_size.h)
 
 return top
 end
 
 -- example
 --print(prior_box({w=500,h=500},{w=4,h=3},{min=475,max=555},{2,3}))
+
+
+function box_to_tensor(box_tensor)
+require 'nn'
+if box_tensor:dim() ~= 4 then assert(nil,box_tensor:dim()) end
+local map_size = box_tensor:size(box_tensor:dim())
+local n = nn.Sequential()
+--n:add(nn.Reshape(-1,map_size,map_size,false))
+n:add(nn.Transpose({1,2},{2,3},{3,4}))
+n:add(nn.Transpose({1,2},{2,3}))
+n:add(nn.Reshape(-1,4,false))
+
+return n:forward(box_tensor)
+end
+
 local function total_box(img_size) -- ratio or real size  image, xymin xymax
 local div = 1
 if img_size ~=nil then div = img_size end
 
 
-local t1 = prior_box(img_size,63,{min=50},{2})
-local t2= prior_box(img_size,32,{max=170,min=100},{2,3})
-local t3 = prior_box(img_size,16,{max=240,min=170},{2,3})
-local t4 = prior_box(img_size,8,{max=310,min=240},{2,3})
-local t5 = prior_box(img_size,4,{max=380,min=310},{2,3})
-local t6 = prior_box(img_size,2,{max=450,min=380},{2,3})
-local t7 = prior_box(img_size,1,{max=520,min=450},{2,3})
+local t1 = box_to_tensor(prior_box(img_size,63,{min=50},{2}))
+local t2= box_to_tensor(prior_box(img_size,32,{max=170,min=100},{2,3}))
+local t3 = box_to_tensor(prior_box(img_size,16,{max=240,min=170},{2,3}))
+local t4 = box_to_tensor(prior_box(img_size,8,{max=310,min=240},{2,3}))
+local t5 = box_to_tensor(prior_box(img_size,4,{max=380,min=310},{2,3}))
+local t6 = box_to_tensor(prior_box(img_size,2,{max=450,min=380},{2,3}))
+local t7 = box_to_tensor(prior_box(img_size,1,{max=520,min=450},{2,3}))
 
-
-return {t7/img_size, t6 /img_size,t5/img_size, t4/img_size, t3/img_size ,t2/img_size, t1/img_size}
+return torch.cat({t7/img_size, t6 /img_size,t5/img_size, t4/img_size, t3/img_size ,t2/img_size, t1/img_size},1)
 end
-
+--[[
 function matching_gt_matrix(gt,img_size,iou) -- xmin, ymin, xmax, ymax
 
 local box_size = total_box(img_size) --ratio
@@ -124,32 +138,25 @@ end
 
 return match_tensor--matched
 end
-
+]]--
 
 function whcxy(img_size)
-local whcxy = torch.Tensor(4,20097)
-local xy = torch.Tensor(4,20097)
+
+local whcxy = torch.Tensor(20097,4)
+local xy = torch.Tensor(20097,4)
 local real_size = total_box(img_size)
 
-local idx =1
-for iter =1 ,#real_size do
-local element = torch.numel(real_size[iter])/4
-local t = real_size[iter]:reshape(4,element)
-xy[{{},{idx,idx+element-1}}] = t
 
-idx =idx+ element
-end
-
-xy:clamp(0,1)
-whcxy[{{1}}] =xy[{{3}}]-xy[{{1}}]
-whcxy[{{2}}] = xy[{{4}}] -xy[{{2}}]
-whcxy[{{3}}] = (xy[{{3}}]+xy[{{1}}])/2
-whcxy[{{4}}] = (xy[{{4}}]+xy[{{2}}])/2
+xy:copy(real_size )
+whcxy[{{},{1}}] =xy[{{},{3}}]-xy[{{},{1}}]
+whcxy[{{},{2}}] = xy[{{},{4}}] -xy[{{},{2}}]
+whcxy[{{},{3}}] = (xy[{{},{3}}]+xy[{{},{1}}])/2
+whcxy[{{},{4}}] = (xy[{{},{4}}]+xy[{{},{2}}])/2
 
 if prior_clip == true then whcxy:clamp(0,1) end
-
+--whcxy = whcxy:t():contiguous()
+--print(whcxy)
 return whcxy
 end
-
-real_box_ratio = whcxy(image_size) --vectorize default box ratio
-
+xy_box_ratio = total_box(image_size)
+real_box_ratio = whcxy(image_size)--vectorize default box ratio

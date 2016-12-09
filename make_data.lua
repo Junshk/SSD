@@ -3,9 +3,7 @@ require 'FetchData'
 require 'donkey'
 
 
- img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
-img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
-img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
+
 
 print('list num:',#img_Info_table)
 

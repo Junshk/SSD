@@ -4,7 +4,7 @@ require 'option'
 require 'gnuplot'
 require 'FetchData'
 require 'MultiBoxLoss'
-require 'test'
+require 'Test'
 require 'os'
 
 
@@ -53,36 +53,7 @@ if x ~= params then
         params:copy(x)
         end
 
-
---grads:zero()
-
---[[
-assert(torch.sum(torch.ne(inputs,inputs))==0 , 'nan in input')
-
-input_af = pretrain:forward(inputs:cuda())
-local output = net:forward(input_af:cuda())
-inputs = inputs:float()
-
------------------------------------
-assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
-
-local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output,targets,opt.lambda)
-output = output:float()
-
-
-f = f+ err
-boxN = boxN +N
-acc = acc +accuracy
-acc_n = acc_n +accuracy_n
-
-net:backward(input_af:cuda(),df_dx:cuda())
-
---end -- for end
-input_af =nil
---targets =nil
-output = nil
-collectgarbage()
-]]--
+print('g',boxN,f,acc,acc_n)
 if boxN ==0 then 
 f = 0
 table.insert(accuracies,accuracies[#accuracies])
@@ -109,7 +80,7 @@ for iteration = start_iter, opt.end_iter do
 
 grads:zero()
 
-for donkeyAdd = 1, batch_size do
+for donkeyAdd = 1, 1 do
 donkeys:addjob(
                  function()
                  torch.manualSeed(os.time())
@@ -124,22 +95,22 @@ donkeys:addjob(
                  
              
                   
-                 if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
-                 local data_name = 'data/SSDdata_'..idx..'.t7'
+                 --if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
+                 --local data_name = 'data/SSDdata_'..idx..'.t7'
                  
 
-                 local data = torch.load(data_name)
+                 --local data = torch.load(data_name)
                  
                  
-                 input = data.input
-                 target = data.target
+                 local input, target =  patchFetch(batch_size,img_Info_table)
+                 
                  
                  
                  collectgarbage()
                  return input, target, donkeyAdd
                  end
                 , 
-                 trainBatch
+                 trainOne
                  
                  )
  end
@@ -196,7 +167,7 @@ print('training end')
 
 end
 ------------------------------------
-function trainBatch(input,target,donkeyAdd)
+function trainOne(input,target,donkeyAdd)
 
 collectgarbage()
 --[[
@@ -215,7 +186,7 @@ local output = net:forward(input_af:cuda())
 input = nil--input:float()
 
 -----------------------------------
-assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
+--assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
 
 local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output,target,opt.lambda)
 output = nil--output:float()
@@ -226,7 +197,7 @@ boxN = boxN +N
 acc = acc +accuracy
 acc_n = acc_n +accuracy_n
 
-net:backward(input_af:cuda(),df_dx:cuda())
+net:backward(input_af:cuda(),df_dx)
 
 --end -- for end
 input_af =nil

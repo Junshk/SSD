@@ -45,8 +45,8 @@ end
   aug_img = img
   
   -- additional aug
-  aug_img = aug_img * math.random(0.9,1.1)
-  aug_img:clamp(0,255)
+  --aug_img = aug_img * math.random(0.9,1.1)
+  --aug_img:clamp(0,255)
 
   else 
    math.randomseed(sys.clock()) 
@@ -81,15 +81,18 @@ end
       anno[{{4}}] = (anno[{{4}}]- crop_sy)--*ratio_height
       local r_crop_w = math.min(w- crop_sx,crop_w)
       local r_crop_h = math.min(h- crop_sy,crop_h)
-      aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
+      --aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
+      --[[
       if chm == true then 
         aug_img[{{1}}]:fill(r_mean)
         aug_img[{{2}}]:fill(g_mean)
         aug_img[{{3}}]:fill(b_mean)
       end  
       aug_img:div(norm)
-      
-      aug_img[{{},{1,r_crop_h},{1,r_crop_w}}] = image.crop(img,crop_sx,crop_sy,crop_sx+r_crop_w,crop_sy+r_crop_h)
+      ]]--
+      --aug_img[{{},{1,r_crop_h},{1,r_crop_w}}] 
+      aug_img
+      = image.crop(img,crop_sx,crop_sy,crop_sx+r_crop_w,crop_sy+r_crop_h)
 
   end
 
@@ -132,11 +135,11 @@ anno[{{4}}]:div(aug_img:size(2))
 --scale to 500 by 500
 
 aug_img = image.scale(aug_img,500,500)
---[[
+
 t_num =1
 while paths.filep('conf/gt'..t_num..'.jpg') ==true do
 t_num = t_num+1
-  end
+end
 local bb_img = aug_img:clone()
 
 for iter = 1, class:numel() do
@@ -145,18 +148,19 @@ local x_,y_,xu,yu = math.max(1,math.ceil(500*(anno[{3,iter}]-anno[{1,iter}]/2)))
 bb_img = image.drawRect(bb_img,x_,y_,xu,yu)
 bb_img = image.drawText(bb_img,num2class(class[{1,iter}]),x_,y_)
 end
-image.save('conf/gt'..t_num..'.jpg',bb_img)
-]]--
+if t_num < 100 then
+image.save('conf/gt'..t_num..'.jpg',bb_img/255)
+end
 --print('AG',augType)
 return aug_img, anno, class
  
 
 end
 
-function dataload(ImgInfo) -- with normalize
-math.randomseed(sys.clock())
+function dataload(ImgInfo,num) -- with normalize
+--math.randomseed(sys.clock())
 ::re::
-local fetchNum = math.random(1,#ImgInfo) 
+local fetchNum = num or math.random(1,#ImgInfo) 
 
 
 data = pascal_loadAImage({info = ImgInfo[fetchNum]})
@@ -220,8 +224,8 @@ local prior_whcxy = real_box_ratio:clone()
 
 function make_default_anno(anno,class)--/////////////////// input cxy
 --print('p',anno)
-local anno_default = prior_whcxy:clone()
-local class_default = torch.Tensor(1,20097):fill(21)
+local anno_default = torch.Tensor(20097,4):copy(real_box_ratio)
+local class_default = torch.Tensor(20097,1):fill(21)
 local gt_xymm = torch.Tensor(anno:size())
   gt_xymm[{{1}}]= -anno[{{1}}]/2 + anno[{{3}}]
   gt_xymm[{{2}}]= -anno[{{2}}]/2 + anno[{{4}}] 
@@ -240,8 +244,9 @@ local unused = torch.ByteTensor(20097):fill(1)
 for iter = 1, anno_n do
 
   local gt_xymm_iter = gt_xymm[{{},iter}]:clone();
+ 
  --print('GTXYMM',gt_xymm_iter) 
-    iou_annos[{iter}] = matching_gt_matrix(gt_xymm_iter,500,true)---// xymm
+   iou_annos[{iter}] = multi_jaccard(xy_box_ratio,gt_xymm_iter)-- matching_gt_matrix(gt_xymm_iter,500,true)---// xymm
    assert(torch.sum(torch.eq(anno[{{2},{iter}}],0))==0)
 end
 
@@ -263,8 +268,8 @@ for iter = 1, anno_n do
  -- print(iter_anno[torch.ne(iter_anno,1)])
   id = id:squeeze()
   --print('id',id,v)
-  anno_default[{{},id}] = anno[{{},iter}]
-  class_default[{{},id}] = class[{{},iter}]
+  anno_default[{id}] = anno[{{},iter}]
+  class_default[{id}] = class[{{},iter}]
   unused[id] = 0 
 end
 
@@ -278,9 +283,9 @@ id =id:squeeze()
 for iter = 1,(unused):size(1) do
   if unused[iter] == 1 then
 --print(anno:size(),id:size())
-anno_default[{{},{iter}}] =anno[{{},{ id[iter]}}]--unused:view(1,-1):expand(anno_default:size())] =
+anno_default[{iter}] =anno[{{},{ id[iter]}}]--unused:view(1,-1):expand(anno_default:size())] =
 --anno:index(2,id:long())
-class_default[{{},{iter}}] = class[{{},{id[iter]}}]--unused] = class:index(2,id)
+class_default[{iter}] = class[{{},{id[iter]}}]--unused] = class:index(2,id)
   end
 end
 
@@ -295,35 +300,39 @@ end
 function patchFetch(batch_size,ImgInfo)
 local default_size = 20097
 local input_images = torch.Tensor(batch_size,3,500,500)
-local target =  torch.Tensor(batch_size,5,default_size)
---local target_class = torch.Tensor(batch_size,1,default_size):fill(21)--1~21
-target[{{},{5},{}}]:fill(21)
---math.randomseed(os.time())
+local target =  {} --torch.Tensor(batch_size,default_size)
+target[1] = torch.Tensor(batch_size,20097,1)
+target[2] = torch.Tensor(batch_size,20097,4)  
+
+torch.manualSeed(os.time())
+local nums = torch.randperm(#ImgInfo)
 
 for iter =1,batch_size do
-
-  local augmentedImg, aug_anno, aug_class= dataload(ImgInfo) -- for a image
+  local num = nums[iter]
+  local augmentedImg, aug_anno, aug_class= dataload(ImgInfo,num) -- for a image
 -- default box matching !!
 ---- thanks to jihong,
- 
+assert(torch.sum(torch.eq(aug_anno,math.huge))==0) 
   local anno_default, class_default = make_default_anno(aug_anno,aug_class)
-  
-  local mask = torch.eq((anno_default[{{2}}]),0) 
+assert(torch.sum(torch.eq(anno_default,math.huge))==0) 
+  --local mask = torch.eq((anno_default[{{},{2}}]),0) 
 --------------------------------------------------
-  if torch.sum(mask) >0 then print(anno_default[mask:expand(4,20097)]:view(4,-1));assert(nil) end
+  --if torch.sum(mask) >0 then print(anno_default[mask:expand(20097,4)]:view(-1,4));assert(nil) end
+assert(torch.sum(torch.eq(anno_default[{{},{1,2}}],0))==0)
+anno_default[{{},{3,4}}]:csub(prior_whcxy[{{},{3,4}}])
+anno_default[{{},{3,4}}]:cdiv(prior_whcxy[{{},{1,2}}])
+anno_default[{{},{1,2}}]:cdiv(prior_whcxy[{{},{1,2}}])
+  
+anno_default[{{},{1,2}}]:log() 
 
-anno_default[{{3,4}}]:csub(prior_whcxy[{{3,4}}])
-anno_default[{{3,4}}]:cdiv(prior_whcxy[{{1,2}}])
-anno_default[{{1,2}}]:cdiv(prior_whcxy[{{1,2}}])
-if logarithm == true then   
-  anno_default[{{1,2}}]:log() 
 
-  end
-anno_default[{{1,2}}]:mul(var_w)
-anno_default[{{3,4}}]:mul(var_x)
+anno_default[{{},{1,2}}]:mul(var_w)
+anno_default[{{},{3,4}}]:mul(var_x)
 ----------------------------------------------
-target[{{iter },{1,4}}] = anno_default
-target[{{iter},{5}}] = class_default
+assert(torch.sum(torch.eq(anno_default,math.huge))==0) 
+
+target[2][{{iter}}] = anno_default
+target[1][{{iter}}] = class_default
 input_images[{{iter}}] = augmentedImg
 
 end

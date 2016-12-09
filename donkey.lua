@@ -10,6 +10,7 @@ donkeys = Threads(nDonkey,
                   require 'cutorch'
                   require 'cunn'
                   require 'cudnn'
+                  require 'FetchData'
                   --pretrain = torch.load('pretrain.net')
                   end,
                   function(idx)
