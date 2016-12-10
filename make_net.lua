@@ -122,9 +122,9 @@ reshape:add(nn.Reshape(-1,classes,true))
   confnet:add(reshape)
   confnet:add(nn.JoinTable(2,1))
   
-  confnet:add(nn.Transpose({1,3}))
-  confnet:add(nn.LogSoftMax())
-  confnet:add(nn.Transpose({1,3}))
+  --confnet:add(nn.Transpose({1,3}))
+  --confnet:add(nn.LogSoftMax())
+  --confnet:add(nn.Transpose({1,3}))
 
 return confnet
 end
