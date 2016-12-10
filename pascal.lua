@@ -64,7 +64,7 @@ local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
 		
 		data.folder[idx] = folder
 		data.imgname[idx] = imgname
-		print(imgname)
+--		print(imgname)
     data.image[idx] = image.load(path .. '/JPEGImages/' .. imgname .. '.jpg')
 		data.image[idx] = (data.image[idx]*255)
     data.object[idx] = {}

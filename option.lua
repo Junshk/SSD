@@ -32,7 +32,7 @@ local i =1000
  Option =
 {
   
-  netname = 'vgg_SSD500_1130'
+  netname = 'vgg_SSD500_1209_master_nocropPad'
 ,  plot_iter =50,end_iter = 100*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
@@ -54,4 +54,11 @@ if truck == false then Option.netname = Option.netname ..'_noTruck' end
 if paths.filep('VGG16.net') ==false then 
   dofile('utils/caffe.lua')
 end
+
+require 'pascal'
+
+
+ img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
+img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
+img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
 

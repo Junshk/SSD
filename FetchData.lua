@@ -81,6 +81,7 @@ end
       anno[{{4}}] = (anno[{{4}}]- crop_sy)--*ratio_height
       local r_crop_w = math.min(w- crop_sx,crop_w)
       local r_crop_h = math.min(h- crop_sy,crop_h)
+      --[[
       aug_img = torch.Tensor(3,crop_h,crop_w):fill(0)
       if chm == true then 
         aug_img[{{1}}]:fill(r_mean)
@@ -88,8 +89,8 @@ end
         aug_img[{{3}}]:fill(b_mean)
       end  
       aug_img:div(norm)
-      
-      aug_img[{{},{1,r_crop_h},{1,r_crop_w}}] = image.crop(img,crop_sx,crop_sy,crop_sx+r_crop_w,crop_sy+r_crop_h)
+      ]]--
+      aug_img = image.crop(img,crop_sx,crop_sy,crop_sx+r_crop_w,crop_sy+r_crop_h)
 
   end
 
@@ -153,10 +154,10 @@ return aug_img, anno, class
 
 end
 
-function dataload(ImgInfo) -- with normalize
+function dataload(ImgInfo,num) -- with normalize
 math.randomseed(sys.clock())
 ::re::
-local fetchNum = math.random(1,#ImgInfo) 
+local fetchNum = num or math.random(1,#ImgInfo) 
 
 
 data = pascal_loadAImage({info = ImgInfo[fetchNum]})
@@ -292,17 +293,17 @@ end
 
 ----------------------------------------------------------------------------
 ------------------------------------------------------------------------------
-function patchFetch(batch_size,ImgInfo)
+function patchFetch(batch_size,ImgInfo,SEED)
 local default_size = 20097
 local input_images = torch.Tensor(batch_size,3,500,500)
 local target =  torch.Tensor(batch_size,5,default_size)
 --local target_class = torch.Tensor(batch_size,1,default_size):fill(21)--1~21
 target[{{},{5},{}}]:fill(21)
---math.randomseed(os.time())
-
+torch.manualSeed(SEED or os.time())
+local nums = torch.randperm(#ImgInfo)
 for iter =1,batch_size do
-
-  local augmentedImg, aug_anno, aug_class= dataload(ImgInfo) -- for a image
+  local num = nums[iter]
+  local augmentedImg, aug_anno, aug_class= dataload(ImgInfo,num) -- for a image
 -- default box matching !!
 ---- thanks to jihong,
  

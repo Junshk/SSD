@@ -120,19 +120,19 @@ donkeys:addjob(
                  
              
                   
-                 if paths.filep('data/SSDdata_'..idx..'.t7') == false then 
+                 --if paths.filep('data/SSDdata_'..idx..'.t7') == false then 
                    --math.randomseed(os.time());
-                   idx = math.random(data_num) 
-                   goto resample
-                 end
-                 local data_name = 'data/SSDdata_'..idx..'.t7'
+                 --  idx = math.random(data_num) 
+                 --  goto resample
+                 --end
+                 --local data_name = 'data/SSDdata_'..idx..'.t7'
                  
 
-                 local data = torch.load(data_name)
+                 local input_,target_ = patchFetch(1,img_Info_table,idx)--torch.load(data_name)
                  
                  
-                 inputs[{{donkeyAdd}}]:copy( data.input)
-                 targets[{{donkeyAdd}}]:copy( data.target)
+                 inputs[{{donkeyAdd}}]:copy( input_)
+                 targets[{{donkeyAdd}}]:copy(target_)
                                
                                      
                  collectgarbage()

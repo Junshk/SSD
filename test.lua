@@ -60,7 +60,7 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
     image.save('conf/'..img_save_iter..'.jpg',bb_image)
     img_save_iter = img_save_iter+1
   
-  bb_image = nil
+   bb_image = nil
   tot_result = nil
   collectgarbage()
   
@@ -260,7 +260,7 @@ function test(net,list,folder,opt)
     
     --nms
    -- res.box, res.score 
-    local output = nms(detection_box,0.45,detection_score,size)
+    local output = nms(detection_box:clone(),0.45,detection_score:clone(),size)
     
     if output:numel() ~= 0 then
     output[{{},{6}}] = iter_class
