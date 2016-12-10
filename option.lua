@@ -32,7 +32,7 @@ local i =1000
  Option =
 {
   
-  netname = 'vgg_SSD500_1208_nocropPad'
+  netname = 'SSD500_noShape_1210_nocropPad'
 ,  plot_iter =50,end_iter = 100*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
