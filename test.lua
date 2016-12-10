@@ -238,7 +238,7 @@ function test(net,list,folder,opt)
     
     local tot_output = torch.Tensor(201*20,6)
     local output_iter = 1
-    local _, max_class = torch.max(conf[{iter_image}],2)
+    local _, max_class = torch.max(conf[{iter_image,{1,20}}],2)
 
     for iter_class =1, 20 do
       -- ::pass::
