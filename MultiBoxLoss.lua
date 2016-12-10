@@ -47,15 +47,15 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   assert(torch.sum(torch.ne(input1,input1) )==0 , 'nan in  input1')
 -------------------------------------------------------------------------
   
-  bd_conf,ix_ = torch.topk(softmax_result[negative_mask]:view(-1),discard_negative_num,1,true,false)
-  bd_conf = bd_conf[1]
+  bd_conf,ix_ = torch.topk(softmax_result[negative_mask]:view(-1),discard_negative_num,1,false,true)
+  bd_conf = bd_conf[bd_conf:numel()]
   discard_mask = torch.ByteTensor(softmax_result:size()):fill(0)
   match_mask = torch.ByteTensor(softmax_result:size()):fill(0)
 
   local discard_iter = 1
   for b_iter = 1, batch do
     for d_iter = 1, default_boxes do 
-      if softmax_result[{b_iter,d_iter}]:squeeze() >= bd_conf and 
+      if softmax_result[{b_iter,d_iter}]:squeeze() <= bd_conf and 
         negative_mask[{b_iter,d_iter}]:squeeze() == 1 then
         discard_mask[{b_iter,d_iter}] = 1
         discard_iter = discard_iter + 1
