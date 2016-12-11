@@ -199,11 +199,11 @@ function test(net,list,folder,opt)
 
       if bgr == true then 
         local vgg_img = torch.Tensor(img:size())
-        vgg_img[{{1}}] = vgg_img[{{3}}]
-        vgg_img[{{2}}] = vgg_img[{{2}}]
-        vgg_img[{{3}}] = vgg_img[{{1}}]
+        vgg_img[{{1}}] = img[{{3}}]:clone()
+        vgg_img[{{2}}] = img[{{2}}]:clone()
+        vgg_img[{{3}}] = img[{{1}}]:clone()
 
-        img = vgg_img
+        img = vgg_img:clone()
       end  
 
     input_tensor[{{iter-start_iter+1}}] = img --image.scale(img,500,500)
