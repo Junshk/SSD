@@ -201,11 +201,11 @@ function test(net,list,folder,opt)
 
       if bgr == true then 
         local vgg_img = torch.Tensor(img:size())
-        vgg_img[{{1}}] = vgg_img[{{3}}]
-        vgg_img[{{2}}] = vgg_img[{{2}}]
-        vgg_img[{{3}}] = vgg_img[{{1}}]
+        vgg_img[{{1}}] = img[{{3}}]:clone()
+        vgg_img[{{2}}] = img[{{2}}]:clone()
+        vgg_img[{{3}}] = img[{{1}}]:clone()
 
-        img = vgg_img
+        img = vgg_img:clone()
       end  
 
     input_tensor[{{iter-start_iter+1}}] = img --image.scale(img,500,500)
@@ -216,7 +216,7 @@ function test(net,list,folder,opt)
    local input_tensor_ = pretrain:forward(input_tensor:cuda())
    local output =net:forward(input_tensor_:cuda())--:float()
    local conf_before_softmax = output[1]--output[{{},{1,21}}]:transpose(2,3):reshape(n*20097,21)
-  local conf =output[1]:exp()-- softmax:forward(conf_before_softmax:cuda()):view(n,20097,21):exp():float()
+  local conf =output[1]:float()-- softmax:forward(conf_before_softmax:cuda()):view(n,20097,21):exp():float()
   
   local refined_box = output[2]--output[{{},{22,25}}]
 
@@ -240,22 +240,23 @@ function test(net,list,folder,opt)
     
     local tot_output = torch.Tensor(201*20,6)
     local output_iter = 1
-    local _, max_class = torch.max(conf[{iter_image,{1,20}}],conf[{iter_image}]:dim())
-    
+    local _, max_class = torch.max(conf[{iter_image,{},{1,20}}],conf[{iter_image}]:dim())
+    local conf_image = nn.SoftMax():forward(conf[{iter_image}])
+    print('sum',torch.sum(conf_image,2))
     for iter_class =1, 20 do
       -- ::pass::
     --local res = {}
 --    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
      
-    local conf_image_class = conf[{iter_image,{},{iter_class}}]
+    local conf_image_class = conf_image[{{},{iter_class}}]
     local index = torch.gt(conf_image_class,0.015)
     if opt ~=nil then index = torch.eq(max_class,iter_class) end
     if torch.sum(index) == 0 then goto pass end
 
     local detection_box = refined_box[iter_image]
-   --print(index:size())
+
     detection_box =detection_box[index:expand(detection_box:size())]:view(-1,4)
---print(detection_box:size())
+
     local detection_score = conf_image_class[index]:view(-1)
    -- res.image_name = image_name
     
