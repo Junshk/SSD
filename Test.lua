@@ -242,7 +242,7 @@ function test(net,list,folder,opt)
     local output_iter = 1
     local _, max_class = torch.max(conf[{iter_image,{},{1,20}}],conf[{iter_image}]:dim())
     local conf_image = nn.SoftMax():forward(conf[{iter_image}])
-    print('sum',torch.sum(conf_image,2))
+    assert(torch.sum(conf_image,2)[1]:squeeze()==1 ,'softmax sum')
     for iter_class =1, 20 do
       -- ::pass::
     --local res = {}
@@ -253,7 +253,7 @@ function test(net,list,folder,opt)
     if opt ~=nil then index = torch.eq(max_class,iter_class) end
     if torch.sum(index) == 0 then goto pass end
 
-    local detection_box = refined_box[iter_image]
+    local detection_box = refined_box[iter_image]:float()
 
     detection_box =detection_box[index:expand(detection_box:size())]:view(-1,4)
 

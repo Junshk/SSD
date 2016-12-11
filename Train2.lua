@@ -80,7 +80,7 @@ for iteration = start_iter, opt.end_iter do
 
 grads:zero()
 
-for donkeyAdd = 1, 1 do
+for donkeyAdd = 1, multi_batch do
 donkeys:addjob(
                  function()
                  torch.manualSeed(os.time())
@@ -102,7 +102,7 @@ donkeys:addjob(
                  --local data = torch.load(data_name)
                  
                  
-                 local input, target =  patchFetch(batch_size,img_Info_table)
+                 local input, target =  patchFetch(batch_size,img_Info_table,iteration*donkeyAdd)
                  
                  
                  
