@@ -69,84 +69,6 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
   end
 
 ---------------------------------------------
-function test_tensor(tensor,image_tensor,folder)
-  conf = tensor[{{},{5}}]
-  refined_box = tensor[{{},{1,4}}]
-  refined_box[{{},{1,2}}]:div(var_w)
-  refined_box[{{},{3,4}}]:div(var_x)
-  local n = refined_box:size(1)
-  local expand = real_box_ratio:view(1,20097,4):expand(n,20097,4)
-
-  if logarithm == true then refined_box[{{},{},{1,2}}]:exp() end
-  refined_box[{{},{},{3,4}}]:cmul(expand[{{},{},{1,2}}])
-  refined_box[{{},{},{1,2}}]:cmul(expand[{{},{},{1,2}}])
-  refined_box[{{},{},{3,4}}]:add(expand[{{},{},{3,4}}])
- --if Sub == true then refined_box[{{},{1,2}}]:add(expand[{{},{1,2}}]) end  
-  --refined_box = refined_box --+ real_box_ratio:view(1,4,20097):expand(n,4,20097)
-  --refined_box =refined_box:transpose(2,3)
-  -- nms
-  for iter_image = 1, n do
-    
-    local image_name = iter_image--list[iter_image+start_iter-1].image_name
-    local size = image_tensor[{iter_image}]:size()--image.load(image_name..'.jpg'):size()
-    
-    local tot_output = torch.Tensor()
-    
-    for iter_class =1, 20 do
- --      ::pass::
-    --print(iter_class)
-    local res = {}
---    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
-     
-    local conf_image_class = conf[{{iter_image}}]--conf[{iter_image,{},{iter_class}}]
-    local index = torch.eq(conf_image_class,iter_class):squeeze():view(-1,1)
- 
-    local detection_box = refined_box[{iter_image}]
---print(detection_box:size(),index:size())
-    detection_box =detection_box[index:expandAs(detection_box)]
-    if detection_box:numel() ==0 then goto pass end 
-    detection_box = detection_box:view(-1,4)
---print(detection_box:size())
-    local detection_score = conf_image_class[index]:view(-1)
-    --res.image_name = image_name
-    --print(detection_box:numel()/4,iter_class)
-    --nms
-   -- res.box, res.score 
-    local output = torch.Tensor(detection_box:size(1),6)
-    --torch.cat(detection_box,detection_score,2)--nms(detection_box,0.45,detection_score,size)
-    --print(output:size(), iter_class)
-    output[{{},{1}}] = -detection_box[{{},{1}}]/2+detection_box[{{},{3}}]
-    output[{{},{2}}] = -detection_box[{{},{2}}]/2+detection_box[{{},{4}}]
-    output[{{},{3}}] = detection_box[{{},{1}}]/2+detection_box[{{},{3}}]
-    output[{{},{4}}] = detection_box[{{},{2}}]/2+detection_box[{{},{4}}]
-
-    output[{{},{1}}]:mul(size[3])
-    output[{{},{2}}]:mul(size[2])
-    output[{{},{3}}]:mul(size[3])
-    output[{{},{4}}]:mul(size[2])
-    
-    output[{{},{5}}] = detection_score
-    output[{{},{6}}] = iter_class
-   -- print(detection_box)
-    if tot_output:numel() ==0 then tot_output = output
-    else tot_output = torch.cat({tot_output,output},1) end
-   ::pass::     
-    end
-    
-    -- discard wo 200 
-    --local _,sort_idx  = tot_output[{{},5}]:sort(1,true)
-    --tot_output = tot_output:index(1,sort_idx)
-    
-    write_txt(tot_output,folder,tostring(image_name),image_tensor[{iter_image}])--(res, folder,iter_class)
---::pass::
-  end
-
-
-
-
-
-end
-
 function test(net,list,folder,opt)
   
   if pretrain == nil then
@@ -166,14 +88,17 @@ function test(net,list,folder,opt)
  
   local newf = assert(io.open(folder..'/test.txt',"w"))
   for iter = 1, #list do
-        newf:write(string.sub(list[iter].image_name,-11,-1),'\n')
+	
+	local image_id = list[iter].image_name:split('/')
+	image_id = image_id[#image_id]
+        newf:write(image_id,'\n')
   end
   newf:close()
 
   local list = list or test_list
-  local result = {}
+  --local result = {}
 
-  for iter = 1, 20 do table.insert(result,{}) end
+  --for iter = 1, 20 do table.insert(result,{}) end
   
  -- local result_vector = torch.Tensor(#list,25,20097)
 
@@ -189,7 +114,7 @@ function test(net,list,folder,opt)
   local input_tensor = torch.Tensor(n,3,500,500)
           -- input --
     for iter = start_iter ,end_iter do
-    local imagename = list[iter].image_name
+    local imagename = list[iter].path..'/JPEGImages/'..list[iter].image_name
 
   --preprocess
     local img = image.load(imagename..'.jpg')
@@ -235,14 +160,14 @@ function test(net,list,folder,opt)
   -- nms
   for iter_image = 1, n do
     
-    local image_name = list[iter_image+start_iter-1].image_name
+    local image_name = list[iter_image+start_iter-1].path..'/JPEGImages/'..list[iter_image+start_iter-1].image_name
     local size = image.load(image_name..'.jpg'):size()
     
     local tot_output = torch.Tensor(201*20,6)
     local output_iter = 1
     local _, max_class = torch.max(conf[{iter_image,{},{1,20}}],conf[{iter_image}]:dim())
     local conf_image = nn.SoftMax():forward(conf[{iter_image}])
-    assert(torch.sum(conf_image,2)[1]:squeeze()==1 ,'softmax sum')
+    assert(math.abs(torch.sum(conf_image,2)[1]:squeeze()-1)<1e-2 ,'softmax sum'..torch.sum(conf_image,2)[1]:squeeze())
     for iter_class =1, 20 do
       -- ::pass::
     --local res = {}
@@ -331,15 +256,16 @@ local valid_folder = 'validation/'..netname ..'/'
 -- random sample list
 local rand = torch.range(1,#valid_list)
 local n = 100
+n = math.min(#valid_list,n)
 local randperm = torch.randperm(n)
 rand = rand:index(1,randperm:long())
 local new_list ={}
-for iter = 1, math.min(n, #valid_list) do
+for iter = 1, n do
 new_list[iter] = valid_list[rand[iter]]
 end
 -- new list write
 
-
+--print(new_list)
 local result = test(net,new_list,valid_folder..savename)--,true)
 
 

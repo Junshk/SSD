@@ -231,8 +231,8 @@ local gt_xymm = torch.Tensor(anno:size())
   gt_xymm[{{2}}]= -anno[{{2}}]/2 + anno[{{4}}] 
   gt_xymm[{{3}}]= anno[{{1}}]/2 + anno[{{3}}]
   gt_xymm[{{4}}]= anno[{{2}}]/2 + anno[{{4}}]
- 
-
+--print(gt_xymm) 
+--assert(nil)
 local anno_n = anno:size(2)
 --local perm = torch.randperm(anno_n):long()
 --anno = anno:index(2,perm)

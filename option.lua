@@ -1,5 +1,5 @@
 require 'cutorch'
-cutorch.setDevice(3)
+cutorch.setDevice(1)
 torch.setnumthreads(2)
 ------------------------
 image_size = 500
@@ -13,7 +13,7 @@ var_x = 1--10
 norm = 1--255
 logarithm = true
 bgr = true
-truck = true
+truck = false --true
 chm = true--false
 
 r_mean = 123
@@ -34,7 +34,7 @@ local i =20
   
   netname = 'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
 ,  plot_iter =50,end_iter = 100*1000,
-  print_iter=1,save_iter=20,
+  print_iter=1,save_iter=5,
   test_iter = i,
   batch_size = 1, multi_batch =32,
   valid =true,
@@ -60,7 +60,7 @@ img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInf
 --img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
 --img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
 
-img_Info_table = {img_Info_table[1]}
+img_Info_table = {img_Info_table[1],img_Info_table[2],img_Info_table[3]}
 valid_list = {}
 valid_list = img_Info_table
 
