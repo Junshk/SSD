@@ -81,8 +81,8 @@ local map_size = box_tensor:size(box_tensor:dim())
 local n = nn.Sequential()
 --n:add(nn.Reshape(-1,map_size,map_size,false))
 n:add(nn.Transpose({1,2},{2,3},{3,4}))
-n:add(nn.Transpose({1,2},{2,3}))
-n:add(nn.Reshape(-1,4,false))
+--n:add(nn.Transpose({1,2},{2,3}))
+n:add(nn.View(-1,4):setNumInputDims(4))
 
 return n:forward(box_tensor)
 end

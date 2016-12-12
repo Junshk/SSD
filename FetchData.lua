@@ -56,7 +56,7 @@ end
     if augType ==2 then 
     else
     repeat 
-    if idx>90 then goto otherOpt end   
+   if idx>30 then goto otherOpt end   
         math.randomseed(sys.clock()*100) 
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
@@ -202,10 +202,10 @@ end
 if bgr == true then
 local vgg_img = torch.Tensor(aug_img:size())
 
-vgg_img[{{3}}] = (aug_img[{{1}}])--:float())
-vgg_img[{{2}}] = (aug_img[{{2}}])--:float())
-vgg_img[{{1}}] = (aug_img[{{3}}])--:float())
-aug_img =vgg_img
+vgg_img[{{3}}] = (aug_img[{{1}}]):clone()--:float())
+vgg_img[{{2}}] = (aug_img[{{2}}]):clone()--:float())
+vgg_img[{{1}}] = (aug_img[{{3}}]):clone()--:float())
+aug_img =vgg_img:clone()
 elseif bgr ==false then
 end
 ---
@@ -297,14 +297,15 @@ end
 
 ----------------------------------------------------------------------------
 ------------------------------------------------------------------------------
-function patchFetch(batch_size,ImgInfo)
+function patchFetch(batch_size,ImgInfo,seed)
+
 local default_size = 20097
 local input_images = torch.Tensor(batch_size,3,500,500)
 local target =  {} --torch.Tensor(batch_size,default_size)
 target[1] = torch.Tensor(batch_size,20097,1)
 target[2] = torch.Tensor(batch_size,20097,4)  
 
-torch.manualSeed(os.time())
+torch.manualSeed((seed or 0)+ os.time())
 local nums = torch.randperm(#ImgInfo)
 
 for iter =1,batch_size do

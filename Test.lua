@@ -1,11 +1,11 @@
 require 'cunn'
 require 'cudnn'
---require 'etc'
+require 'option'
 require 'image'
 require 'pascal'
 require 'prior_box'
 print('test load')
-local batch = 8
+local batch = 4
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
@@ -323,31 +323,18 @@ end
 
 function validation(net,savename,netname)
 
-local valid_txt ='VOCdevkit/VOC2012/ImageSets/Main/val.txt'
-local valid_list = {}
 if paths.dirp('validation/'..netname )== false then os.execute('mkdir validation/'..netname) end
-
 local valid_folder = 'validation/'..netname ..'/'
-local f = assert(io.open(valid_txt,'r'))
 
-io.input(f)
---for i =1 ,5 do--
-while  true do
-local img ={}
-local line = io.read()
-if line ==nil then break end
-img.image_name = 'VOCdevkit/VOC2012/JPEGImages/'..line
-table.insert(valid_list,img)
 
-end
-io.close(f)
+
 -- random sample list
 local rand = torch.range(1,#valid_list)
 local n = 100
 local randperm = torch.randperm(n)
 rand = rand:index(1,randperm:long())
 local new_list ={}
-for iter = 1, n do
+for iter = 1, math.min(n, #valid_list) do
 new_list[iter] = valid_list[rand[iter]]
 end
 -- new list write
