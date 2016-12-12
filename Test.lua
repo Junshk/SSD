@@ -44,19 +44,21 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
      
        -- print(class_box) 
 --print(class_box:size(1),class_num)
-            for iter2 = 1, class_box:size(1) do
+          for iter2 = 1, class_box:size(1) do
             local box = class_box[{{iter2}}]:squeeze()
             local score = class_score[iter2]:squeeze()
             write_result:write(image_id,' ',score,' ',box[1],' ',box[2],' ',box[3],' ',box[4],'\n' )
         --    print('box',box)
             bb_image = image.drawRect(bb_image,(box[1]),(box[2]),(box[3]),(box[4]))
             local label = num2class(class_num)--string.format('%s_%f',num2class(class_num),score)
-           -- bb_image = image.drawText(bb_image,label,math.max(box[1]-15,0),math.max(box[2]-15,0),{wrap=true})--,{size=5})
-            end
+           if box[1]+10<box[3] and box[2] +10<box[4] then
+            bb_image = image.drawText(bb_image,tostring(class_num),math.max(box[1]+2,0),math.max(box[2]+2,0),{wrap=true})--,{size=5})
+           end    
+	  end
 
         write_result:close() 
       ::continue::
-      end
+      end --for end
 
     ::save_result::
     image.save('conf/'..img_save_iter..'.jpg',bb_image)

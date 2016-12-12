@@ -59,7 +59,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
  --print('softmax max',torch.max(softmax_score),'min',torch.min(softmax_score))
   
 
- print(torch.max(bd_conf),'max bd_conf')
+ --print(torch.max(bd_conf),'max bd_conf')
  --assert(nil)
   discard_mask = torch.ByteTensor(batch, default_boxes):fill(0)
   match_mask = torch.ByteTensor(batch,default_boxes):fill(0)
@@ -75,12 +75,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   for b_iter = 1, batch do
     for d_iter = 1, default_boxes do
       local softmax_value = softmax_result[{b_iter,d_iter}]
-      local negative_mask_value =negative_mask[{b_iter,d_iter}]:squeeze()
-      assert(type(softmax_value)=='number' and type(negative_mask_value)=='number',
-      type(softmax_value)..' '.. type(negative_mask_value))
+      local discard_mask_value = discard_mask[{b_iter,d_iter}]--:squeeze()
+      assert(type(softmax_value)=='number' and type(discard_mask_value)=='number',
+      type(softmax_value)..' '.. type(discard_mask_value))
             
       if --softmax_value  <= bd_conf and 
-        negative_mask_value == 1 --and 
+        discard_mask_value == 1 --and 
        -- discard_iter <= discard_negative_num
         then
         --discard_mask[{b_iter,d_iter}] = 1
@@ -89,12 +89,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       else  
         local __,conf_class = torch.max(softmax_score[{{},b_iter,d_iter}],1)
         local __21 , conf_class_ex21 = torch.max(softmax_score[{{1,20},b_iter,d_iter}],1)
-        local target = target1[{b_iter,d_iter}]:squeeze()
-        assert(type(target)=='number')
+        local target_sample = target1[{b_iter,d_iter}]:squeeze()
+        assert(type(target_sample)=='number')
         --print(target,conf_class:squeeze())
-        if  target ==  conf_class:squeeze() then
+        if  target_sample ==  conf_class:squeeze() then
           match_mask[{b_iter,d_iter}] = 1
-          if target1[{b_iter,d_iter}]:squeeze() == conf_class_ex21:squeeze() then
+          if target_sample == conf_class_ex21:squeeze() then
                   excp21_match_mask[{b_iter,d_iter}] = 1
           end
         end
@@ -143,6 +143,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       end
       assert(type(discard_mask[{1,1}])=='number')
       if discard_mask[{i_batch,i_box}] ==0 then
+		if target1[{i_batch,i_box}] == 21 then print(21) end
         loss_conf = loss_conf + CE:forward(input1[{i_batch,i_box}],target1[{i_batch,i_box}]:squeeze())
         Grad[1][{i_batch,i_box}]:copy( CE:backward(input1[{i_batch,i_box}],target1[{i_batch,i_box}]):squeeze())
       end
@@ -157,7 +158,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
 
   local n = (positive_num)--+negative_num) ;  
 
-  if n ==0 then err = 0  end--dl_dx:fill(0) ; n = 0 end
+  if n ==0 then   Grad[1]:fill(0);Grad[2]:fill(0) ; err = 0  end--dl_dx:fill(0) ; n = 0 end
  -- if n~= 0 then Grad[1]:div(n); Grad[2]:div(n) ; err = err/n end
   
   --local accuracy = match_num*100
