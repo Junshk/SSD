@@ -60,7 +60,7 @@ if x ~= params then
 --print('g',boxN,f,acc,acc_n)
 if boxN ==0 then 
 f = 0
-table.insert(accuracies,accuracies[#accuracies])
+table.insert(accuracies,accuracies[#accuracies] or 0)
 
  return f, grads:fill(0)
 else
@@ -86,6 +86,8 @@ for iteration = start_iter, opt.end_iter do
 
 
 grads:zero()
+--print(grads[])
+--print(f)
 --[[
 for donkeyAdd = 1, multi_batch do
 donkeys:addjob(
@@ -136,7 +138,7 @@ donkeys:synchronize()
   if iteration == 60*1000 then optimState.learningRate = 1e-4 end
      if iteration % opt.print_iter ==0 then 
         print('------------------------------------------------------------')
-        print('iter',iteration,'loss ',loss[1],'acc',accuracies[#accuracies])
+        print('iter',iteration,'loss ',loss[1],'acc',accuracies[#accuracies],netname)
         print('------------------------------------------------------------')
   end
 

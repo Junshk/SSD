@@ -332,8 +332,8 @@ local ss = nn.Sequential()
 local cmul = nn.CMul(1,512,1,1):init('weight',nninit.constant,20)
 --cmul.accGradParameters = function() end
 if ch==true then 
-  ss:add(nn.ChannelNormalization(2,0)) 
-  --ss:add(nn.SpatialCrossMapLRN(512*2,512*2,1/2,0))
+  --ss:add(nn.ChannelNormalization(2,1e-10)) 
+  ss:add(nn.SpatialCrossMapLRN(512*2,512*2,1/2))
   end
 if mul==true then ss:add(cmul) end
 
@@ -369,7 +369,8 @@ else assert(false,'wrong base network name')
 end
 
  collectgarbage();
-net = cudnn.convert(net,cudnn):cuda()
+--net = cudnn.convert(net,cudnn):cuda()
+net:cuda()
 local pretrain = nn.Sequential()--cudnn.convert(pretrain0(base),cudnn):cuda()
 torch.save('pretrain.net',pretrain)
 return net

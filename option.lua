@@ -32,11 +32,11 @@ local i =500
  Option =
 {
   
-  netname = 'SSD500_1213-2012'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
+  netname = 'SSD500_1213-2012-100_eps_b4_eachboxloss_hard21conf'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
 ,  plot_iter =50,end_iter = 100*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
-  batch_size = 2, multi_batch =16,
+  batch_size = 4, multi_batch =4,
   valid =true,
   cont = true--false
 , ch = true
@@ -45,9 +45,10 @@ local i =500
 }
 
 -- training
-if weighted21 == true then Option.netname = Option.netname .. '_weg21' end
+--if weighted21 == true then Option.netname = Option.netname .. '_weg21' end
 --if chm == false then option.netname = option.netname .. '_nochm'end
 --if logarithm == true then option.netname = option.netname .. 'log' end
+
 Option.netname = Option.netname ..'_w'..var_w..'_x'..var_x..'_n'..norm
 if truck == false then Option.netname = Option.netname ..'_noTruck' end
 --if random_data2 == true then Option.netname = Option.netname..'_rdat2' end
@@ -61,9 +62,15 @@ img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInf
 --img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
 
 --img_Info_table = {img_Info_table[1],img_Info_table[2],img_Info_table[3]}
-valid_list = {}
---valid_list = img_Info_table
+for i = 101,#img_Info_table do
+ table.remove(img_Info_table,i)
+end
 
+
+
+valid_list = {}
+valid_list = img_Info_table
+--[[
 local valid_txt ='VOCdevkit/VOC2012/ImageSets/Main/val.txt'
 local f = assert(io.open(valid_txt,'r'))
 
@@ -79,4 +86,4 @@ table.insert(valid_list,img)
 end
 io.close(f)
 
-
+]]--
