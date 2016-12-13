@@ -32,11 +32,11 @@ local i =500
  Option =
 {
   
-  netname = 'SSD500_1213'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
+  netname = 'SSD500_1213-2012'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
 ,  plot_iter =50,end_iter = 100*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
-  batch_size = 1, multi_batch =32,
+  batch_size = 2, multi_batch =16,
   valid =true,
   cont = true--false
 , ch = true
@@ -57,8 +57,8 @@ end
 
 require 'pascal'
 img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
-img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
-img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
+--img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
+--img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
 
 --img_Info_table = {img_Info_table[1],img_Info_table[2],img_Info_table[3]}
 valid_list = {}
@@ -72,7 +72,8 @@ while  true do
 local img ={}
 local line = io.read()
 if line ==nil then break end
-img.image_name = 'VOCdevkit/VOC2012/JPEGImages/'..line
+img.image_name = line
+img.path = 'VOCdevkit/VOC2012/'
 table.insert(valid_list,img)
 
 end

@@ -86,7 +86,7 @@ for iteration = start_iter, opt.end_iter do
 
 
 grads:zero()
-
+--[[
 for donkeyAdd = 1, multi_batch do
 donkeys:addjob(
                  function()
@@ -123,12 +123,12 @@ donkeys:addjob(
  end
 donkeys:synchronize()
 
---[[
+]]--
   for batch_iter = 1, multi_batch do
-   local input_, target_ = patchFetch(batch_size,img_Info_table,iteration*batch_iter)
+   local input_, target_ = patchFetch(batch_size,img_Info_table,iteration*multi_batch+batch_iter)
    trainOne(input_,target_)
   end
-  ]]--
+  
  local _, loss = optim.sgd(feval,params,optimState)
   
 
