@@ -114,7 +114,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       ]]--
       loss_conf = loss_conf + sample_conf_loss
       loss_loc = loss_loc + sample_loc_loss
-      end--if end
+      else discard_mask[{{},d_iter}] = 1 end--if end
     end  --- d for end
     
    local err = loss_conf + loss_loc
