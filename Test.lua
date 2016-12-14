@@ -257,7 +257,7 @@ local valid_folder = 'validation/'..netname ..'/'
 
 -- random sample list
 local rand = torch.range(1,#valid_list)
-local n = 100
+local n = 20
 n = math.min(#valid_list,n)
 local randperm = torch.randperm(n)
 rand = rand:index(1,randperm:long())
