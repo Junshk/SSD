@@ -88,7 +88,7 @@ for iteration = start_iter, opt.end_iter do
 grads:zero()
 --print(grads[])
 --print(f)
---[[
+
 for donkeyAdd = 1, multi_batch do
 donkeys:addjob(
                  function()
@@ -111,7 +111,7 @@ donkeys:addjob(
                  --local data = torch.load(data_name)
                  
                  
-                 local input, target =  patchFetch(batch_size,img_Info_table,iteration*donkeyAdd)
+                 local input, target =  patchFetch(batch_size,img_Info_table,iteration*multi_batch+donkeyAdd)
                  
                  
                  
@@ -125,12 +125,13 @@ donkeys:addjob(
  end
 donkeys:synchronize()
 
-]]--
+
+  --[[
   for batch_iter = 1, multi_batch do
    local input_, target_ = patchFetch(batch_size,img_Info_table,iteration*multi_batch+batch_iter)
    trainOne(input_,target_)
   end
-  
+  ]]--
  local _, loss = optim.sgd(feval,params,optimState)
   
 

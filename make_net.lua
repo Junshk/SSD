@@ -279,34 +279,34 @@ concat6:add(nn.SpatialAveragePooling(2,2))
 concat6:add(nn.Identity())
 
 seq5:add(ConvInit(256,128,1))
-seq5:add(nn.ReLU(true))
+seq5:add(cudnn.ReLU(true))
 seq5:add(ConvInit(128,256,3,2))
-seq5:add(nn.ReLU(true))
+seq5:add(cudnn.ReLU(true))
 seq5:add(concat6)
 concat5:add(seq5)
 concat5:add(nn.Identity())
 
 
 seq4:add(ConvInit(256,128,1))
-seq4:add(nn.ReLU(true))
+seq4:add(cudnn.ReLU(true))
 seq4:add(ConvInit(128,256,3,2))
-seq4:add(nn.ReLU(true))
+seq4:add(cudnn.ReLU(true))
 seq4:add(concat5)
 concat4:add(seq4)
 concat4:add(nn.Identity())
 
 seq3:add(ConvInit(512,128,1))
-seq3:add(nn.ReLU(true))
+seq3:add(cudnn.ReLU(true))
 seq3:add(ConvInit(128,256,3,2))
-seq3:add(nn.ReLU(true))
+seq3:add(cudnn.ReLU(true))
 seq3:add(concat4)
 concat3:add(seq3)
 concat3:add(nn.Identity())
 
 seq2:add(ConvInit(1024,256,1))
-seq2:add(nn.ReLU(true))
+seq2:add(cudnn.ReLU(true))
 seq2:add(ConvInit(256,512,3,2))
-seq2:add(nn.ReLU(true))
+seq2:add(cudnn.ReLU(true))
 seq2:add(concat3)
 concat2:add(seq2)
 concat2:add(nn.Identity())--nn.SpatialConvolution(1024,6*(classes+4),3,3,1,1,1,1)) --classifier
@@ -318,13 +318,13 @@ seq1:add(base.modules[iter])
 end]]--
 
 seq1:add(pretrain2(base))
-seq1:add(nn.SpatialMaxPooling(3,3,1,1,1,1))
+seq1:add(cudnn.SpatialMaxPooling(3,3,1,1,1,1))
 --bias_of_fc6:fill(0)
 --bias_of_fc7:fill(0)
 seq1:add(nn.SpatialDilatedConvolution(512,1024,3,3,1,1,6,6,6,6):init('weight',nninit.copy,weight_of_fc6):init('bias',nninit.copy,bias_of_fc6):learningRate('weight',1):weightDecay('weight',1):learningRate('bias',2):weightDecay('bias',0))  -- subsampling fc 6
-seq1:add(nn.ReLU(true))
-seq1:add(nn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.copy,bias_of_fc7):learningRate('bias',2):weightDecay('bias',0):learningRate('weight',1):weightDecay('weight',1)) -- subsampling fc 7
-seq1:add(nn.ReLU(true))
+seq1:add(cudnn.ReLU(true))
+seq1:add(cudnn.SpatialConvolution(1024,1024,1,1):init('weight',nninit.copy,weight_of_fc7):init('bias',nninit.copy,bias_of_fc7):learningRate('bias',2):weightDecay('bias',0):learningRate('weight',1):weightDecay('weight',1)) -- subsampling fc 7
+seq1:add(cudnn.ReLU(true))
 seq1:add(concat2)
 
 concat1:add(seq1)

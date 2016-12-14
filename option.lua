@@ -1,6 +1,6 @@
 require 'cutorch'
 cutorch.setDevice(1)
-torch.setnumthreads(2)
+torch.setnumthreads(3)
 ------------------------
 image_size = 500
 fmap_n = 7
@@ -28,11 +28,11 @@ data_num = 9e4
 print(var_w,var_x,norm,logarithm,bgr,truck)
 -----------------------
 
-local i =500
+local i =1000
  Option =
 {
   
-  netname = 'SSD500_1213-2012-100_eps_b4_eachboxloss_hard21conf'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
+  netname = 'SSD500_1214'---2012-100_eps_b4_eachboxloss_hard21conf'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
 ,  plot_iter =50,end_iter = 100*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
@@ -58,19 +58,19 @@ end
 
 require 'pascal'
 img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
---img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
---img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
+img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
+img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
 
 --img_Info_table = {img_Info_table[1],img_Info_table[2],img_Info_table[3]}
-for i = 101,#img_Info_table do
+--[[for i = 101,#img_Info_table do
  table.remove(img_Info_table,i)
 end
-
+]]--
 
 
 valid_list = {}
-valid_list = img_Info_table
---[[
+--valid_list = img_Info_table
+
 local valid_txt ='VOCdevkit/VOC2012/ImageSets/Main/val.txt'
 local f = assert(io.open(valid_txt,'r'))
 
@@ -86,4 +86,4 @@ table.insert(valid_list,img)
 end
 io.close(f)
 
-]]--
+

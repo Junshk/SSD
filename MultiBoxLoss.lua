@@ -81,7 +81,10 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       local pos_iter = 1
       local neg_iter = 1
       
+      if pos_sample_num >0 then
+      
       local sample_loc_loss, sample_conf_loss = 0, 0
+      
       for i_sample = 1, batch do
         local id = sort_idx[i_sample] --batchsampleid
         local pos =1- negative_mask[{id,d_iter}]:squeeze(); assert(type(pos)=='number')
@@ -111,7 +114,8 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       ]]--
       loss_conf = loss_conf + sample_conf_loss
       loss_loc = loss_loc + sample_loc_loss
-    end  
+      end--if end
+    end  --- d for end
     
    local err = loss_conf + loss_loc
  
