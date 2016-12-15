@@ -41,8 +41,8 @@ opt.cont =false end
     table.remove(accuracies,#accuracies)
     end
  end
- net = cudnn.convert(net,cudnn)
- net.modules[3].modules[2].modules[1] = cudnn.convert(net.modules[3].modules[2].modules[1],nn)
+-- net = cudnn.convert(net,cudnn)
+-- net.modules[3].modules[2].modules[1] = cudnn.convert(net.modules[3].modules[2].modules[1],nn)
 --print(net.modules[3].modules[2].modules[1])
 ----------------
 --require 'training'
