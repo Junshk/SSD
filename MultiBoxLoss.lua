@@ -49,6 +49,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   assert(math.abs(sum_ex - 1)<1e-2,sum_ex) ]]--
   softmax_pos_result = softmax_pos_result:view(batch,default_boxes)
   softmax_result = softmax_result:view(batch,default_boxes)
+  ix_ = ix_:view(batch, default_boxes)
   assert(torch.sum(torch.ne(input1,input1) )==0 , 'nan in  input1')
 -------------------------------------------------------------------------
   
@@ -58,7 +59,6 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   
 
  --print(torch.max(bd_conf),'max bd_conf')
- 
   local match_mask = torch.eq(ix_:float(),target1:view(batch,default_boxes))
   local excp21_match_mask = torch.eq(ix_pos:float(),target1:view(batch,default_boxes))
   local discard_mask = torch.ByteTensor(batch,default_boxes):fill(0)
