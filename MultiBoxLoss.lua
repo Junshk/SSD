@@ -94,7 +94,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
           sample_conf_loss = sample_conf_loss + CE:forward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda())
           Grad[1][{id,d_iter}]:copy(CE:backward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda()))
           pos_iter = pos_iter + 1
-        elseif  neg_iter <= neg_sample_num then
+        elseif  neg_iter <= neg_sample_num or (ix_[{id,d_iter}]~=21 and i_sample ==1) then
           sample_conf_loss = sample_conf_loss + CE:forward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda())
           Grad[1][{id,d_iter}]:copy(CE:backward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda()))
           neg_iter = neg_iter + 1
