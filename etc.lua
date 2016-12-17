@@ -40,6 +40,8 @@ end
 ]]--
 -----------------------------------------------------------
 function jaccard_matrix(tensor,gt) --xmin ymin xmax ymax 
+assert(tensor:dim() == gt:dim() )
+assert(gt)
 if tensor:dim() ==4 then
 gt = gt:view(4,1,1,1)
 --print('s',gt)
@@ -74,6 +76,37 @@ return I:cdiv(U)
 
 end
 
+function multi_jaccard(tensor,gt) --xmin ymin xmax ymax 
+assert(tensor:dim() == gt:dim() or gt:dim()==1)
+
+--print('gt',gt)
+
+local expandGt = gt:view(1,4):expandAs(tensor) -- 4 by ~
+--print(tensor,'tensor')
+local xdelta = torch.cmin(tensor[{{},{3}}],expandGt[{{},{3}}])-
+torch.cmax(tensor[{{},{1}}],expandGt[{{},{1}}])
+local ydelta = torch.cmin(tensor[{{},{4}}],expandGt[{{},{4}}])-
+torch.cmax(tensor[{{},{2}}],expandGt[{{},{2}}])
+--print(xdelta,ydelta)
+xdelta:cmax(0)
+ydelta:cmax(0)
+--print('af',xdelta, ydelta)
+local I = torch.cmul(xdelta,ydelta)
+
+--local tensor_size = tensor:size(); tensor_size[1]=1
+--local tensor_element = torch.numel(tensor[{{1}}])
+local t_t = (tensor[{{},{3}}]-tensor[{{},{1}}])
+t_t:cmul((tensor[{{},{4}}]-tensor[{{},{2}}]))
+local gt_s = (gt[{{3}}]-gt[{{1}}])*(gt[{{4}}]-gt[{{2}}])
+
+local U =t_t+gt_s - I
+
+assert(torch.sum(torch.lt(U,0))==0 , 'jaccard error #'..torch.sum(torch.le(U,0)))
+assert(torch.sum(torch.lt(I,0))==0,'jaccard error #'..torch.sum(torch.le(I,0)))
+
+return I:cdiv(U)
+
+end
 
 
 

@@ -15,7 +15,7 @@ local txt = assert(io.open(txt_name,'r'))
   while true do    
     local image_name = io.read();
     if image_name == nil then break; end
-    table.insert(Info,{path=folder_path,image_name=image_name..'.jpg'})
+    table.insert(Info,{path=folder_path,image_name=image_name})
   end
   
   io.close(txt)
@@ -58,13 +58,12 @@ local image_name = opt.info.image_name
 --	if idx <= idxMax then
 
 --		if idx%1000==0 then print(idx) end
-		local imgname = image_name:sub(1,-5)
+		local imgname = image_name--:sub(1,-5)
 print(imgname)
 local annot = xml.loadpath(path .. '/Annotations/' .. imgname .. '.xml')
 		
 		data.folder[idx] = folder
 		data.imgname[idx] = imgname
---		print(imgname)
     data.image[idx] = image.load(path .. '/JPEGImages/' .. imgname .. '.jpg')
 		data.image[idx] = (data.image[idx]*255)
     data.object[idx] = {}

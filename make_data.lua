@@ -3,6 +3,11 @@ require 'FetchData'
 require 'donkey'
 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 802278a3d3a8b8db9e99d1ed9851ad6f406506ed
 print('list num:',#img_Info_table)
 
 local limit_num = data_num 

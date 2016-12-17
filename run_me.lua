@@ -43,7 +43,7 @@ opt.cont =false end
  end
 ----------------
 --require 'training'
-require 'Train'
+require 'Train2'
 require 'donkey'
 net:training()
 training()

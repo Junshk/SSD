@@ -15,7 +15,7 @@ local nninit = require 'nninit'
 local k = k or 3
 local s = s or 1
 local p = p or math.floor(k/2)
-return nn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nninit.xavier):init('bias',nninit.constant,0):learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)
+return cudnn.SpatialConvolution(dim1,dim2,k,k,s,s,p,p):init('weight',nninit.xavier):init('bias',nninit.constant,0):learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0)
 end
 -------------------------------------------------------------------------------
 local function base_load(base_name)
@@ -58,18 +58,52 @@ parl:add(ConvInit(dim[iter_loc],4*6))
 end
 parl:add(ConvInit(dim[7],4*3))
 
-reshape:add(nn.Reshape(4,6*1))
-reshape:add(nn.Reshape(4,6*2*2))
-reshape:add(nn.Reshape(4,6*4*4))
-reshape:add(nn.Reshape(4,6*8*8))
-reshape:add(nn.Reshape(4,6*16*16))
-reshape:add(nn.Reshape(4,6*32*32))
-reshape:add(nn.Reshape(4,3*63*63))
-  
-  
+local trans = nn.ParallelTable()--:add(nn.Reshape(-1,true))
+
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+
+--[[
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+reshape:add(nn.Reshape(-1,4,true))
+]]--
+
+reshape:add(nn.View(4,6,1,1):setNumInputDims(3))
+reshape:add(nn.View(4,6,2,2):setNumInputDims(3))
+reshape:add(nn.View(4,6,4,4):setNumInputDims(3))
+reshape:add(nn.View(4,6,8,8):setNumInputDims(3))
+reshape:add(nn.View(4,6,16,16):setNumInputDims(3))
+reshape:add(nn.View(4,6,32,32):setNumInputDims(3))
+reshape:add(nn.View(4,3,63,63):setNumInputDims(3))
+
+local reshape2 = nn.ParallelTable()
+reshape2:add(nn.View(4,6*1*1):setNumInputDims(4))  
+reshape2:add(nn.View(4,6*2*2):setNumInputDims(4))  
+reshape2:add(nn.View(4,6*4*4):setNumInputDims(4))  
+reshape2:add(nn.View(4,6*8*8):setNumInputDims(4))  
+reshape2:add(nn.View(4,6*16*16):setNumInputDims(4))  
+reshape2:add(nn.View(4,6*32*32):setNumInputDims(4))  
+reshape2:add(nn.View(4,3*63*63):setNumInputDims(4))  
+
   locnet:add(parl)
+--  locnet:add(trans)
+  
   locnet:add(reshape)
-  locnet:add(nn.JoinTable(2,2))
+  locnet:add(reshape2)
+  locnet:add(trans)
+  --locnet:add(nn.MapTable():add(nn.Transpose({2,3})))
+  --locnet:add(nn.Contiguous())
+  locnet:add(nn.JoinTable(2,1))
 
 return locnet
 end
@@ -85,17 +119,58 @@ parl:add(ConvInit(dim[iter_conf],classes*6))
 end
 parl:add(ConvInit(dim[7],classes*3))
 
-reshape:add(nn.Reshape(classes,6*1))
-reshape:add(nn.Reshape(classes,6*2*2))
-reshape:add(nn.Reshape(classes,6*4*4))
-reshape:add(nn.Reshape(classes,6*8*8))
-reshape:add(nn.Reshape(classes,6*16*16))
-reshape:add(nn.Reshape(classes,6*32*32))
-reshape:add(nn.Reshape(classes,3*63*63))
+local trans = nn.ParallelTable()--:add(nn.Reshape(-1,true))
 
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+trans:add(nn.Transpose({2,3}))--,{3,4}))
+
+--[[
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+reshape:add(nn.Reshape(-1,classes,true))
+]]--
+
+reshape:add(nn.View(21,6,1,1):setNumInputDims(3))
+reshape:add(nn.View(21,6,2,2):setNumInputDims(3))
+reshape:add(nn.View(21,6,4,4):setNumInputDims(3))
+reshape:add(nn.View(21,6,8,8):setNumInputDims(3))
+reshape:add(nn.View(21,6,16,16):setNumInputDims(3))
+reshape:add(nn.View(21,6,32,32):setNumInputDims(3))
+reshape:add(nn.View(21,3,63,63):setNumInputDims(3))
+
+local reshape2 = nn.ParallelTable()
+reshape2:add(nn.View(21,6*1*1):setNumInputDims(4))  
+reshape2:add(nn.View(21,6*2*2):setNumInputDims(4))  
+reshape2:add(nn.View(21,6*4*4):setNumInputDims(4))  
+reshape2:add(nn.View(21,6*8*8):setNumInputDims(4))  
+reshape2:add(nn.View(21,6*16*16):setNumInputDims(4))  
+reshape2:add(nn.View(21,6*32*32):setNumInputDims(4))  
+reshape2:add(nn.View(21,3*63*63):setNumInputDims(4))  
+
+
+  
   confnet:add(parl)
+--  confnet:add(trans)
+  
   confnet:add(reshape)
-  confnet:add(nn.JoinTable(2,2))
+  confnet:add(reshape2)
+  confnet:add(trans)
+  --confnet:add(nn.MapTable():add(nn.Transpose({2,3})))
+  --confnet:add(nn.Contiguous())
+  confnet:add(nn.JoinTable(2,1))
+  
+  --confnet:add(nn.Transpose({1,3}))
+  --confnet:add(nn.LogSoftMax())
+  --confnet:add(nn.Transpose({1,3}))
 
 return confnet
 end
@@ -109,7 +184,7 @@ for iter = 24, n do
    if base.modules[iter].weight ~=nil then
     seq:add(base.modules[iter]:learningRate('weight',1):learningRate('bias',2):weightDecay('weight',1):weightDecay('bias',0))
    else  
- seq:add( base.modules[iter])
+ seq:add( base.modules[iter]:clone())
     end
   end
 end
@@ -129,7 +204,7 @@ for iter = 9, 23 do
     end
 --  end
 
-  seq:add(base.modules[iter])
+  seq:add(base.modules[iter]:clone())
 --cal conv = base.modules[iter]:clone('weight','bias')
   end
 
@@ -143,9 +218,9 @@ for iter = 1, 8 do
       base.modules[iter]:learningRate('weight',0):learningRate('bias',0):weightDecay('weight',0):weightDecay('bias',0)
       
     end
-    seq:add(base.modules[iter])
+    seq:add(base.modules[iter]:clone())
 end
-seq.accGradParameters = function() end
+--seq.accGradParameters = function() end
 
 return seq
 end
@@ -160,8 +235,8 @@ local base = base_load(base_name)
 --base:float() ; 
 --base.accGradParameters = function() end
 -- fc 6, 7 to conv and subsampling parameters
-local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512)
-local bias_of_fc6 = base.modules[33].bias
+local weight_of_fc6 = base.modules[33].weight:reshape(4096,7,7,512):clone()
+local bias_of_fc6 = base.modules[33].bias:clone()
 
 local perm_order = torch.randperm(4096)
 perm_order = perm_order[{{1,1024}}]
@@ -178,12 +253,12 @@ weight_of_fc6 = weight_of_fc6:transpose(1,2)
 
 bias_of_fc6 = bias_of_fc6:index(1,perm_order:long())
 
-local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1)
+local weight_of_fc7 = base.modules[36].weight:reshape(4096,1024,4,1):clone()
 weight_of_fc7 = weight_of_fc7:index(1,perm_order:long())
 weight_of_fc7 = weight_of_fc7[{{},{},{1},{}}]
 weight_of_fc7 = weight_of_fc7:transpose(1,2)
 
-local bias_of_fc7 = base.modules[36].bias:reshape(1024,4,1)
+local bias_of_fc7 = base.modules[36].bias:reshape(1024,4,1):clone()
 --bias_of_fc7 = bias_of_fc7:index(1,perm_order:long())
 bias_of_fc7 = bias_of_fc7[{{},{1},{}}]
 
@@ -255,13 +330,17 @@ seq1:add(concat2)
 concat1:add(seq1)
 local ss = nn.Sequential()
 local cmul = nn.CMul(1,512,1,1):init('weight',nninit.constant,20)
+--cmul.accGradParameters = function() end
 if ch==true then 
-  ss:add(nn.ChannelNormalization(2)) 
-  --ss:add(nn.SpatialCrossMapLRN(512*2,512*2,1/2,0))
+  --ss:add(nn.ChannelNormalization(2,1e-10)) 
+  ss:add(nn.SpatialCrossMapLRN(512*2,512*2,1/2))
   end
 if mul==true then ss:add(cmul) end
 
 concat1:add(ss)
+
+-----------------------
+net:add(pretrain0(base))
 net:add(pretrain1(base))
 net:add(concat1)
 
@@ -282,18 +361,17 @@ local conf_net =conf(classes)
 concat:add(conf_net)
 concat:add(loc_net)
 loss_net:add(concat)
-loss_net:add(nn.JoinTable(2,1))
+--loss_net:add(nn.JoinTable(2,1))
 
 net:add(loss_net) -- 2 table output
-elseif base_name == 'residual' then
 
-print('residual')
 else assert(false,'wrong base network name')
 end
 
  collectgarbage();
-net = cudnn.convert(net,cudnn):cuda()
-local pretrain = cudnn.convert(pretrain0(base),cudnn):cuda()
+--net = cudnn.convert(net,cudnn):cuda()
+net:cuda()
+local pretrain = nn.Sequential()--cudnn.convert(pretrain0(base),cudnn):cuda()
 torch.save('pretrain.net',pretrain)
 return net
 

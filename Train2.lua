@@ -4,7 +4,7 @@ require 'option'
 require 'gnuplot'
 require 'FetchData'
 require 'MultiBoxLoss'
-require 'test'
+require 'Test'
 require 'os'
 
 
@@ -14,7 +14,10 @@ optimState ={
 
 learningRate = 1e-3,
 momentum = 0.9,
-weightDecay = 0.0005
+weightDecay = 0.0005,
+learningRateDecay =0,
+dampening =0 ,
+nesterov = true
 
 }
 local iteration 
@@ -42,6 +45,7 @@ function training()
 math.randomseed(os.time())
 ----------------------------
 print(opt)
+print(pretrain)
 print(net)
 print('training')
 
@@ -53,44 +57,17 @@ if x ~= params then
         params:copy(x)
         end
 
-
---grads:zero()
-
---[[
-assert(torch.sum(torch.ne(inputs,inputs))==0 , 'nan in input')
-
-input_af = pretrain:forward(inputs:cuda())
-local output = net:forward(input_af:cuda())
-inputs = inputs:float()
-
------------------------------------
-assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
-
-local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output,targets,opt.lambda)
-output = output:float()
-
-
-f = f+ err
-boxN = boxN +N
-acc = acc +accuracy
-acc_n = acc_n +accuracy_n
-
-net:backward(input_af:cuda(),df_dx:cuda())
-
---end -- for end
-input_af =nil
---targets =nil
-output = nil
-collectgarbage()
-]]--
+--print('g',boxN,f,acc,acc_n)
 if boxN ==0 then 
 f = 0
-table.insert(accuracies,accuracies[#accuracies])
-return f, grads:fill(0)
+table.insert(accuracies,accuracies[#accuracies] or 0)
+
+ return f, grads:fill(0)
 else
 table.insert(accuracies,acc/acc_n)
 f = f/ boxN
 grads:div(boxN)
+ 
 return f, grads
 end
 
@@ -100,16 +77,19 @@ end -- end local feval
 
 for iteration = start_iter, opt.end_iter do
 
- f =0
+  f =0
  acc =0
  boxN =0
  PN =0
  acc_n =0
 
 
-grads:zero()
 
-for donkeyAdd = 1, batch_size do
+grads:zero()
+--print(grads[])
+--print(f)
+--[[
+for donkeyAdd = 1, multi_batch do
 donkeys:addjob(
                  function()
                  torch.manualSeed(os.time())
@@ -124,36 +104,42 @@ donkeys:addjob(
                  
              
                   
-                 if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
-                 local data_name = 'data/SSDdata_'..idx..'.t7'
+                 --if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
+                 --local data_name = 'data/SSDdata_'..idx..'.t7'
                  
 
-                 local data = torch.load(data_name)
+                 --local data = torch.load(data_name)
                  
                  
-                 input = data.input
-                 target = data.target
+                 local input, target =  patchFetch(batch_size,img_Info_table,iteration*donkeyAdd)
+                 
                  
                  
                  collectgarbage()
                  return input, target, donkeyAdd
                  end
                 , 
-                 trainBatch
+                 trainOne
                  
                  )
  end
 donkeys:synchronize()
 
+]]--
+  for batch_iter = 1, multi_batch do
+   local input_, target_ = patchFetch(batch_size,img_Info_table,iteration*multi_batch+batch_iter)
+   trainOne(input_,target_)
+  end
+  
  local _, loss = optim.sgd(feval,params,optimState)
   
- 
 
 
   if iteration == 60*1000 then optimState.learningRate = 1e-4 end
      if iteration % opt.print_iter ==0 then 
-        print('iter',iteration,'loss ',loss[1],'acc',accuracies[#accuracies])
-
+        print('------------------------------------------------------------')
+        print('iter',iteration,'loss ',loss[1],'acc',accuracies[#accuracies],netname)
+        print('------------------------------------------------------------')
   end
 
    if opt.valid ==true and iteration%opt.test_iter ==0 then
@@ -196,7 +182,7 @@ print('training end')
 
 end
 ------------------------------------
-function trainBatch(input,target,donkeyAdd)
+function trainOne(input,target,donkeyAdd)
 
 collectgarbage()
 --[[
@@ -212,13 +198,13 @@ assert(torch.sum(torch.ne(input,input))==0 , 'nan in input')
 
 local input_af = pretrain:forward(input:cuda())
 local output = net:forward(input_af:cuda())
-input = nil--input:float()
+--input = nil--input:float()
 
 -----------------------------------
-assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
+--assert(torch.sum(torch.ne(output,output))==0, 'nan in output')
 
 local err, df_dx,N, accuracy,accuracy_n = MultiBoxLoss(output,target,opt.lambda)
-output = nil--output:float()
+--output = nil--output:float()
 
 
 f = f+ err
@@ -226,10 +212,10 @@ boxN = boxN +N
 acc = acc +accuracy
 acc_n = acc_n +accuracy_n
 
-net:backward(input_af:cuda(),df_dx:cuda())
+net:backward(input_af:cuda(),df_dx)
 
 --end -- for end
-input_af =nil
+--input_af =nil
 --targets =nil
 --output = nil
 collectgarbage()
