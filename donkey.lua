@@ -1,7 +1,7 @@
 require 'ffi'
 Threads = require 'threads'
 Threads.serialization('threads.sharedserialize')
-local nDonkey = 2
+local nDonkey = 3
 local manualseed  = os.time()
 do
   if nDonkey >0 then

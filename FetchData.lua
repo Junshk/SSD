@@ -24,7 +24,7 @@ local augType = math.random(3)--------------------
 local flip = math.random(2)
 
 local function new_patch()  
-  math.randomseed(os.time())  
+ -- math.randomseed(os.time())  
   local crop_size = 0.1+(1-0.1)*math.random()
   local aspect = math.pow(2,math.random(-1,1))
   local crop_w, crop_h = math.floor(crop_size*math.sqrt(aspect)*w), 
@@ -45,19 +45,20 @@ end
   aug_img = img
   
   -- additional aug
-  --aug_img = aug_img * math.random(0.9,1.1)
-  --aug_img:clamp(0,255)
-
+    if math.random(1,4) == 1 then
+    aug_img = aug_img * math.random(0.9,1.1)
+    aug_img:clamp(0,255)
+    end
   else 
-   math.randomseed(sys.clock()) 
+ --  math.randomseed(sys.clock()) 
     local  crop_w,crop_h,crop_sx, crop_sy = new_patch()
     
     local idx =1 
     if augType ==2 then 
     else
     repeat 
-   if idx>30 then goto otherOpt end   
-        math.randomseed(sys.clock()*100) 
+   if idx>50 then goto otherOpt end   
+      --  math.randomseed(sys.clock()*100) 
            -- conform center of patch
         crop_w,crop_h,crop_sx, crop_sy = new_patch()
 
@@ -135,7 +136,7 @@ anno[{{4}}]:div(aug_img:size(2))
 --scale to 500 by 500
 
 aug_img = image.scale(aug_img,500,500)
-
+--[[
 t_num =1
 while paths.filep('conf/gt'..t_num..'.jpg') ==true do
 t_num = t_num+1
@@ -151,7 +152,8 @@ end
 if t_num < 100 then
 image.save('conf/gt'..t_num..'.jpg',bb_img/255)
 end
---print('AG',augType)
+]]--
+print('AG',augType)
 return aug_img, anno, class
  
 

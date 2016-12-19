@@ -49,6 +49,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   assert(math.abs(sum_ex - 1)<1e-2,sum_ex) ]]--
   softmax_pos_result = softmax_pos_result:view(batch,default_boxes)
   softmax_result = softmax_result:view(batch,default_boxes)
+  ix_ = ix_:view(batch, default_boxes)
   assert(torch.sum(torch.ne(input1,input1) )==0 , 'nan in  input1')
 -------------------------------------------------------------------------
   
@@ -58,7 +59,6 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   
 
  --print(torch.max(bd_conf),'max bd_conf')
- 
   local match_mask = torch.eq(ix_:float(),target1:view(batch,default_boxes))
   local excp21_match_mask = torch.eq(ix_pos:float(),target1:view(batch,default_boxes))
   local discard_mask = torch.ByteTensor(batch,default_boxes):fill(0)
@@ -81,7 +81,10 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       local pos_iter = 1
       local neg_iter = 1
       
+      if pos_sample_num >0 then
+      
       local sample_loc_loss, sample_conf_loss = 0, 0
+      
       for i_sample = 1, batch do
         local id = sort_idx[i_sample] --batchsampleid
         local pos =1- negative_mask[{id,d_iter}]:squeeze(); assert(type(pos)=='number')
@@ -91,7 +94,7 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
           sample_conf_loss = sample_conf_loss + CE:forward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda())
           Grad[1][{id,d_iter}]:copy(CE:backward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda()))
           pos_iter = pos_iter + 1
-        elseif  neg_iter <= neg_sample_num then
+        elseif  neg_iter <= neg_sample_num or (ix_[{id,d_iter}]~=21 and i_sample ==1) then
           sample_conf_loss = sample_conf_loss + CE:forward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda())
           Grad[1][{id,d_iter}]:copy(CE:backward(input1[{id,d_iter}],target1[{id,d_iter}]:cuda()))
           neg_iter = neg_iter + 1
@@ -111,7 +114,8 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
       ]]--
       loss_conf = loss_conf + sample_conf_loss
       loss_loc = loss_loc + sample_loc_loss
-    end  
+      else discard_mask[{{},d_iter}] = 1 end--if end
+    end  --- d for end
     
    local err = loss_conf + loss_loc
  
@@ -129,12 +133,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local n = torch.sum(positive_num)
  
   local accuracy = p_match_num*100
-  local accuracy_n =torch.sum( positive_num)
+  local accuracy_n = n--torch.sum( positive_num)
 --  print('bdconf',bd_conf)
   print('loss',loss_conf, loss_loc)
   print('match',p_match_num,n_match_num,hard_match_num,match_num,'ex21', excp21_p_match_num)
 --  print('except 21',torch.sum(p_match_exc21_mask))
-  print('np',torch.sum(positive_num),torch.sum(negative_num))--,discard_negative_num)
+  print('np',n,torch.sum(negative_num))--,discard_negative_num)
   --print('acc',accuracy,accuracy_n)
   --print('mask', torch.sum(negative_mask),torch.sum(discard_mask))
   print(' ')

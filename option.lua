@@ -1,6 +1,6 @@
 require 'cutorch'
-cutorch.setDevice(1)
-torch.setnumthreads(2)
+cutorch.setDevice(2)
+torch.setnumthreads(3)
 ------------------------
 image_size = 500
 fmap_n = 7
@@ -28,7 +28,7 @@ data_num = 9e4
 print(var_w,var_x,norm,logarithm,bgr,truck)
 -----------------------
 
-local i =500
+local i =1000
  Option =
 {
   
@@ -57,17 +57,11 @@ if paths.filep('VGG16.net') ==false then
 end
 
 require 'pascal'
-
-
-
- img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
+img_Info_table = ImgTxt('VOCdevkit/VOC2012','trainval.txt')--ImgInfo()--trainInfo()--ImgInfo()
 img_Info_table = ImgTxt('VOCdevkit/VOC2007','trainval.txt',img_Info_table)
 img_Info_table = ImgTxt('VOCdevkit/VOC2007','test.txt',img_Info_table)
 
-
 valid_list = {}
-valid_list = img_Info_table
-
 local valid_txt ='VOCdevkit/VOC2012/ImageSets/Main/val.txt'
 local f = assert(io.open(valid_txt,'r'))
 
