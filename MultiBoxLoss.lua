@@ -133,12 +133,12 @@ function MultiBoxLoss(input,target,lambda)  -- target1 : class 1 by pyramid, bd 
   local n = torch.sum(positive_num)
  
   local accuracy = p_match_num*100
-  local accuracy_n =torch.sum( positive_num)
+  local accuracy_n = n--torch.sum( positive_num)
 --  print('bdconf',bd_conf)
   print('loss',loss_conf, loss_loc)
   print('match',p_match_num,n_match_num,hard_match_num,match_num,'ex21', excp21_p_match_num)
 --  print('except 21',torch.sum(p_match_exc21_mask))
-  print('np',torch.sum(positive_num),torch.sum(negative_num))--,discard_negative_num)
+  print('np',n,torch.sum(negative_num))--,discard_negative_num)
   --print('acc',accuracy,accuracy_n)
   --print('mask', torch.sum(negative_mask),torch.sum(discard_mask))
   print(' ')

@@ -1,5 +1,5 @@
 require 'cutorch'
-cutorch.setDevice(1)
+cutorch.setDevice(2)
 torch.setnumthreads(3)
 ------------------------
 image_size = 500

@@ -72,12 +72,12 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
 
 ---------------------------------------------
 function test(net,list,folder,opt)
-  
+ --[[ 
   if pretrain == nil then
     pretrain = torch.load('pretrain.net')
   end
   pretrain:evaluate()
-
+]]--
   img_save_iter =1
   
   local i1 = os.time()
@@ -140,8 +140,8 @@ function test(net,list,folder,opt)
     end
           -----------
           --forward--
-   local input_tensor_ = pretrain:forward(input_tensor:cuda())
-   local output =net:forward(input_tensor_:cuda())--:float()
+  -- local input_tensor_ =pretrain:forward(input_tensor:cuda())
+   local output =net:forward(input_tensor:cuda())--:float()
    local conf_before_softmax = output[1]--output[{{},{1,21}}]:transpose(2,3):reshape(n*20097,21)
   local conf =output[1]:float()-- softmax:forward(conf_before_softmax:cuda()):view(n,20097,21):exp():float()
   

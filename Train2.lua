@@ -92,25 +92,7 @@ grads:zero()
 for donkeyAdd = 1, multi_batch do
 donkeys:addjob(
                  function()
-                 torch.manualSeed(os.time())
-                 --math.randomseed(os.time())
-                 --local inputs, targets = torch.Tensor(batch_size,3,500,500), torch.Tensor(batch_size,5,20097)
-                 ::resample::
-                 local rand = torch.randperm(data_num+1)-1 
-                 
-                 local idx = rand[donkeyAdd]--torch.randperm(data_num)
-                 local name_i = 0
-                -- print(idx,donkeyAdd)
-                 
-             
-                  
-                 --if paths.filep('data/SSDdata_'..idx..'.t7') == false then goto resample end
-                 --local data_name = 'data/SSDdata_'..idx..'.t7'
-                 
-
-                 --local data = torch.load(data_name)
-                 
-                 
+                
                  local input, target =  patchFetch(batch_size,img_Info_table,iteration*multi_batch+donkeyAdd)
                  
                  

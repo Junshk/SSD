@@ -153,7 +153,7 @@ if t_num < 100 then
 image.save('conf/gt'..t_num..'.jpg',bb_img/255)
 end
 ]]--
---print('AG',augType)
+print('AG',augType)
 return aug_img, anno, class
  
 
