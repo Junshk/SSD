@@ -7,25 +7,25 @@ addpath('VOCdevkit/VOCcode/')
 VOCinit;
 
 %validation test and map plot
-folder = dir([result_folder '/val*']);
+%folder = dir([result_folder '/val*']);
+folder = result_folder;
+    VOCopts.detrespath = [result_folder '/comp3_det_test_%s.txt' ];
+    VOCopts.imgsetpath = [result_folder  '/%s.txt'];
+    VOCopts.testset = 'test';
 VOCopts
 tic;
-for j = 1:length(folder)
-    folder_ = folder(j).name 
-    VOCopts.detrespath = [result_folder '/%s/comp3_det_test_%s.txt' ];
-    VOCopts.imgsetpath = [result_folder '/' folder_ '/%s.txt'];
-    VOCopts.testset = 'test';
+
         for i = 1:20
 
         class = VOCopts.classes{i};
-        VOCevaldet(VOCopts, folder_,class,true );
-        viewdet(VOCopts,folder_ ,class,false)
+        VOCevaldet(VOCopts, '/',class,true );
+        viewdet(VOCopts,'/' ,class,false)
     end
 end
 
 
 
-end
+
 %VOCopts%
 % testset test
 %eval_det('test/')
