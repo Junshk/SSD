@@ -52,7 +52,7 @@ net:training()
 training()
 
 -- test code
-require 'test'
+require 'Test'
 local test_txt = 'VOCdevkit/VOC2012_test/ImageSets/Main/test.txt'
 local test_list = {}
 local f_test = assert(io.open(test_txt,"r"))

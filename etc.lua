@@ -138,7 +138,7 @@ end
 
 function nms(boxes_mm, overlap, scores,image_size) -- adjusted
 
-  local top = 200 
+  local top = 20 
   
   ----- cuda calculate iou of all pair
   boxes_mm = boxes_mm:float(); 
@@ -153,7 +153,7 @@ function nms(boxes_mm, overlap, scores,image_size) -- adjusted
 
   local box_num = boxes_mm:size(1)
   local box_size = boxes_mm:size()
-
+--  print('nms n',box_num)
   local a1 = sys.clock()
   
   boxes_mm = boxes_mm:cuda()
@@ -182,14 +182,14 @@ local a4= sys.clock()
 
   scores = scores:cuda()
   local v, Order = torch.sort(scores,1)
-  Order=Order:long()
+  --Order=Order:long()
 
   pick:resize(box_num):zero()
   count = 1
 
 while true do 
    if Order:numel() == 0 then break end
-    
+--   print(sys.clock()) 
     local last = Order:size(1)
     local i = Order[last]
     
@@ -202,7 +202,7 @@ while true do
       break
     end
     
-
+--print(sys.clock())
     Order = Order[{{1, last-1}}] -- remove picked element from view
     local xmax =  torch.cmin(boxes_mm[{{},{3}}],boxes_mm[{i,3}])
     local xmin = torch.cmax(boxes_mm[{{},{1}}],boxes_mm[{i,1}])
@@ -213,18 +213,20 @@ while true do
 
     local I = torch.cmul(ymax,xmax)
 
-
-    local IOU =torch.cdiv(I,( S[i]:squeeze()+S-I+1e-10))
-    local partial_IoU = IOU:index(1,Order):view(Order:size()):float()
+--print(sys.clock())
+    local IOU = torch.cdiv(I,S[i]:squeeze()+S-I+1e-10)
+    local partial_IoU = IOU:index(1,Order):view(Order:size())--:float()
     --print(partial_IoU:le(overlap):size())
-
+--print(sys.clock())
     Order = Order[partial_IoU:le(overlap)] -- keep only elements with a IoU < overlap
-  
+ --[[ 
     xmax =nil
     ymax =nil
     ymin =nil
     xmin =nil
-    collectgarbage()
+    
+    collectgarbage()]]--
+--  print(sys.clock(),'e')
   end
 
   -- reduce size to actual count
@@ -234,12 +236,11 @@ while true do
 
   pick = pick[{{1, count-1}}]
    -- remove wrong box
-  S = S:float()
-  pick = pick[torch.ne(S:index(1,pick),0)]
+  --S = S:float()
+  --pick = pick[torch.ne(S:index(1,pick),0)]
 
   S =nil;
-  local a6 =sys.clock()
-  
+ 
   if pick:numel() == 0 then return pick end
 
     
@@ -254,8 +255,10 @@ while true do
   
   output[{{},{1,4}}] = boxes_mm
   output[{{},{5}}] = scores
-   collectgarbage()
-
+   --collectgarbage()
+ local a6 =sys.clock()
+--print('nms time',a6-a1)
+--print(a6,a5,a4,a3,a2,a1)
  return output--boxes_mm, scores
 
 end

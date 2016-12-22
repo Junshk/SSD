@@ -52,7 +52,7 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
             bb_image = image.drawRect(bb_image,(box[1]),(box[2]),(box[3]),(box[4]))
             local label = num2class(class_num)--string.format('%s_%f',num2class(class_num),score)
            if box[1]+10<box[3] and box[2] +10<box[4] then
-            bb_image = image.drawText(bb_image,tostring(class_num),math.max(box[1]+2,0),math.max(box[2]+2,0),{wrap=true})--,{size=5})
+            bb_image = image.drawText(bb_image,tostring(class_num),math.max(box[1],0),math.max(box[2],0),{wrap=true})--,{size=5})
            end    
 	  end
 
@@ -72,12 +72,6 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
 
 ---------------------------------------------
 function test(net,list,folder,opt)
- --[[ 
-  if pretrain == nil then
-    pretrain = torch.load('pretrain.net')
-  end
-  pretrain:evaluate()
-]]--
   img_save_iter =1
   
   local i1 = os.time()
@@ -86,8 +80,11 @@ function test(net,list,folder,opt)
   net:evaluate()
   
   print('testing..')
+    if paths.dirp(folder) ==true then os.execute('rm '..folder);
+  os.execute('mkdir '..folder) end
   if paths.dirp(folder) ==false then os.execute('mkdir '..folder) end
- 
+
+
   local newf = assert(io.open(folder..'/test.txt',"w"))
   for iter = 1, #list do
 	
@@ -110,7 +107,7 @@ function test(net,list,folder,opt)
   while iter <= #list do
     print('test ',iter)
    if iter %1000 ==0 then  print(iter,'/',#list) end
- --print(start_iter) 
+ print(start_iter,os.time()) 
   local start_iter , end_iter = iter, math.min(iter +batch -1,#list)
   local n = end_iter - start_iter +1
   local input_tensor = torch.Tensor(n,3,500,500)
@@ -156,9 +153,7 @@ function test(net,list,folder,opt)
   refined_box[{{},{},{3,4}}]:cmul(expand[{{},{},{1,2}}])
   refined_box[{{},{},{1,2}}]:cmul(expand[{{},{},{1,2}}])
   refined_box[{{},{},{3,4}}]:add(expand[{{},{},{3,4}}])
-  --if Sub == true then refined_box[{{},{1,2}}]:add(expand[{{},{1,2}}]) end  
-  --refined_box = refined_box --+ real_box_ratio:view(1,4,20097):expand(n,4,20097)
-  --refined_box =refined_box:transpose(2,3)
+
   -- nms
   for iter_image = 1, n do
     
@@ -176,7 +171,7 @@ function test(net,list,folder,opt)
 --    local index = torch.eq(recognition[{iter_image,{},{}}],iter_class)
      
     local conf_image_class = conf_image[{{},{iter_class}}]
-    local index = torch.gt(conf_image_class,0.015)
+    local index = torch.gt(conf_image_class,0.01)
     if opt ~=nil then index = torch.eq(max_class,iter_class) end
     if torch.sum(index) == 0 then goto pass end
 
@@ -217,19 +212,19 @@ function test(net,list,folder,opt)
     sort_idx = sort_idx[{{1,math.min(output_iter-1,200)}}]
     tot_output = tot_output:index(1,sort_idx)
     end
-
+   print(os.time()) 
     write_txt(tot_output,folder,image_name)--(res, folder,iter_class)
-    
+   print(os.time()) 
   end
+print(os.time())
 
 
 
 
-
-  input_tensor =nil;
+  --[[input_tensor =nil;
   input_tensor_ =nil;
   refined_box = nil;
-  collectgarbage();
+  collectgarbage();]]--
   result = {}
   iter = end_iter + 1
   --net:cuda() 
@@ -272,3 +267,5 @@ local result = test(net,new_list,valid_folder..savename)--,true)
 
 
 end
+
+

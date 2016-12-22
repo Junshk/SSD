@@ -33,7 +33,7 @@ local i =1000
 {
   
   netname = 'SSD500_1214'---2012-100_eps_b4_eachboxloss_hard21conf'--'SSD500_noShape_1211_nocropPad_whole_optim_frezMul_newShape2'--'SSD500_noShape_1212_bdfix'
-,  plot_iter =50,end_iter = 100*1000,
+,  plot_iter =50,end_iter = 80*1000,
   print_iter=1,save_iter=50,
   test_iter = i,
   batch_size = 8, multi_batch =4,
