@@ -40,14 +40,14 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
         --if class_box:numel() ==0 then return end
         --local class_num = tot_result[{iter,6}]
         local write_result = io.open(folder..'/'..'comp3_det_test_'..num2class(class_num)..'.txt',"a")
-        write_result:write('\n')
+--        write_result:write('\n')
      
        -- print(class_box) 
 --print(class_box:size(1),class_num)
           for iter2 = 1, class_box:size(1) do
             local box = class_box[{{iter2}}]:squeeze()
             local score = class_score[iter2]:squeeze()
-            write_result:write(image_id,' ',score,' ',box[1],' ',box[2],' ',box[3],' ',box[4],'\n' )
+            write_result:write(image_id,' ',score,' ',box[1],' ',box[2],' ',box[3],' ',box[4],' \n' )
         --    print('box',box)
             bb_image = image.drawRect(bb_image,(box[1]),(box[2]),(box[3]),(box[4]))
             local label = num2class(class_num)--string.format('%s_%f',num2class(class_num),score)
@@ -107,7 +107,7 @@ function test(net,list,folder,opt)
   while iter <= #list do
     print('test ',iter)
    if iter %1000 ==0 then  print(iter,'/',#list) end
- print(start_iter,os.time()) 
+-- print(start_iter,os.time()) 
   local start_iter , end_iter = iter, math.min(iter +batch -1,#list)
   local n = end_iter - start_iter +1
   local input_tensor = torch.Tensor(n,3,500,500)
@@ -212,11 +212,11 @@ function test(net,list,folder,opt)
     sort_idx = sort_idx[{{1,math.min(output_iter-1,200)}}]
     tot_output = tot_output:index(1,sort_idx)
     end
-   print(os.time()) 
+ --  print(os.time()) 
     write_txt(tot_output,folder,image_name)--(res, folder,iter_class)
-   print(os.time()) 
+--   print(os.time()) 
   end
-print(os.time())
+--print(os.time())
 
 
 
