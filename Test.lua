@@ -47,7 +47,7 @@ function write_txt(tot_result,folder,image_name,img)--,class_num)
           for iter2 = 1, class_box:size(1) do
             local box = class_box[{{iter2}}]:squeeze()
             local score = class_score[iter2]:squeeze()
-            write_result:write(image_id,' ',score,' ',box[1],' ',box[2],' ',box[3],' ',box[4],' \n' )
+            write_result:write(image_id,string.format(' %.6f',score),string.format(' %f',box[1]),string.format(' %f',box[2]),string.format(' %f',box[3]),string.format(' %f\n',box[4]) )
         --    print('box',box)
             bb_image = image.drawRect(bb_image,(box[1]),(box[2]),(box[3]),(box[4]))
             local label = num2class(class_num)--string.format('%s_%f',num2class(class_num),score)
